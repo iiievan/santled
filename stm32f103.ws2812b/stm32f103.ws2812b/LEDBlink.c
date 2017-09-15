@@ -697,12 +697,12 @@ int main(void)
 	while (1) {
 		// set two pixels (columns) in the defined row (channel 0) to the
 		// color values defined in the colors array
-		for (i = 0; i < NUM_OF_FRAMES; i++)
-		{
+	//	for (i = 0; i < NUM_OF_FRAMES; i++)
+	//	{
 						
 			srand(adc_rng_get());   // зерно для получения случайного числа.
 			
-			rng_val = rand() % 24;	// случайное число.
+		    i = rand() % 24;	// случайное число.
 			
 			for (j = 0; j < NUMOFLEDS; j++)
 			{
@@ -710,7 +710,7 @@ int main(void)
 				while (!WS2812_TC);
 			
 				// корректируем оттенок всего костра.
-				rgb_after_correct = tone_correction_func(frames[i][j], 0x0A, SUB, 0x37, SUB, 0x00, ADD);
+				rgb_after_correct = tone_correction_func(frames[i][j], 0xFF, ADD, 0x57, SUB, 0x37, SUB);
 				
 				// this approach sets each pixel individually
 				WS2812_framedata_setPixel(4, j, rgb_after_correct);
@@ -735,8 +735,8 @@ int main(void)
 			}
 		
 			WS2812_sendbuf(BUFFERSIZE);
-			Delay(50000);			
-		}				
+			Delay(400000);			
+	   //}				
 	}
 }
 
