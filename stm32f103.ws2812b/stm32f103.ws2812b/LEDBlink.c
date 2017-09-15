@@ -23,6 +23,8 @@
  */
 
 #include <stm32f10x.h>
+#include <adc.h>		// случайное число
+#include <stdlib.h>     // srand, rand 
 
 /* this define sets the number of TIM2 overflows
  * to append to the data frame for the LEDs to 
@@ -685,16 +687,23 @@ int main(void)
 {	
 	uint8_t i,j;
 	uint32_t rgb_after_correct;
+	uint32_t rng_val;
 	
 	GPIO_init();
 	DMA_init();
 	TIM2_init();
+	adc_rng_init();	// АЦП для получения случайного числа.
 	
 	while (1) {
 		// set two pixels (columns) in the defined row (channel 0) to the
 		// color values defined in the colors array
 		for (i = 0; i < NUM_OF_FRAMES; i++)
 		{
+						
+			srand(adc_rng_get());   // зерно для получения случайного числа.
+			
+			rng_val = rand() % 24;	// случайное число.
+			
 			for (j = 0; j < NUMOFLEDS; j++)
 			{
 				// wait until the last frame was transmitted
