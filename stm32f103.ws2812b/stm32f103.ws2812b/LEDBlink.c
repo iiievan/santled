@@ -30,8 +30,10 @@
 #define WS2812_DEADPERIOD 19
 #define NUMOFLEDS 29
 #define BUFFERSIZE (NUMOFLEDS*24)
-#define NUM_OF_FRAMES 14
+#define NUM_OF_FRAMES 24
 #define RGB 3
+
+typedef enum { ADD, SUB } rgb_operation;
 
 //union
 //{
@@ -557,9 +559,132 @@ void WS2812_framedata_setColumn(uint8_t rows, uint16_t column, uint32_t rgb)
 	}
 }
 
+uint32_t tone_correction_func(uint32_t input_tone, 
+							   uint8_t r_index,
+						 rgb_operation r_op,
+							   uint8_t g_index,
+						 rgb_operation g_op,
+						       uint8_t b_index,
+						 rgb_operation b_op)
+{
+	uint32_t out = 0x00000000;
+	uint8_t red   = (uint8_t)((input_tone & 0x00FF0000) >> 16);
+	uint8_t green = (uint8_t)((input_tone & 0x0000FF00) >> 8);
+	uint8_t blue  = (uint8_t)(input_tone & 0x000000FF);
+	
+	switch (r_op)
+	{
+		case ADD:
+		
+		// проверяем на переполнение.
+		if ((red + r_index) <= 0xFF)
+		{
+			red += r_index;			
+		}
+		else
+		{
+			red = 0xFF;
+		}
+
+	    break;
+		
+		case SUB:
+		
+		// проверяем на переполнение.
+		if ((red - r_index) >= 0x00)
+		{
+			red -= r_index;			
+		}
+		else
+		{
+			red = 0x00;
+		}
+		
+		break;		
+	
+	default:
+		break;
+	}
+	
+	switch (g_op)
+	{
+	case ADD:
+		
+	    // проверяем на переполнение.
+		if ((green + g_index) <= 0xFF)
+		{
+			green += g_index;			
+		}
+		else
+		{
+			green = 0xFF;
+		}
+
+		break;
+		
+	case SUB:
+		
+	    // проверяем на переполнение.
+		if ((green - g_index) >= 0x00)
+		{
+			green -= g_index;			
+		}
+		else
+		{
+			green = 0x00;
+		}
+		
+		break;		
+	
+	default:
+		break;
+	}
+	
+	switch (b_op)
+	{
+	case ADD:
+		
+	    // проверяем на переполнение.
+		if ((blue + b_index) <= 0xFF)
+		{
+			blue += b_index;			
+		}
+		else
+		{
+			blue = 0xFF;
+		}
+
+		break;
+		
+	case SUB:
+		
+	    // проверяем на переполнение.
+		if ((blue - b_index) >= 0x00)
+		{
+			blue -= b_index;			
+		}
+		else
+		{
+			blue = 0x00;
+		}
+		
+		break;		
+	
+	default:
+		break;
+	}
+	
+	out |= ((uint32_t)red << 16);
+	out |= ((uint32_t)green << 8);
+	out |=  (uint32_t)blue;
+	
+	return out;
+}
+
 int main(void) 
 {	
 	uint8_t i,j;
+	uint32_t rgb_after_correct;
 	
 	GPIO_init();
 	DMA_init();
@@ -575,11 +700,14 @@ int main(void)
 				// wait until the last frame was transmitted
 				while (!WS2812_TC);
 			
+				// корректируем оттенок всего костра.
+				rgb_after_correct = tone_correction_func(frames[i][j], 0x0A, SUB, 0x37, SUB, 0x00, ADD);
+				
 				// this approach sets each pixel individually
-				WS2812_framedata_setPixel(4, j, frames[i][j]);
-				WS2812_framedata_setPixel(5, j, frames[i][j]);
-				WS2812_framedata_setPixel(6, j, frames[i][j]);
-				WS2812_framedata_setPixel(7, j, frames[i][j]);
+				WS2812_framedata_setPixel(4, j, rgb_after_correct);
+				WS2812_framedata_setPixel(5, j, rgb_after_correct);
+				WS2812_framedata_setPixel(6, j, rgb_after_correct);
+				WS2812_framedata_setPixel(7, j, rgb_after_correct);
 		
 			
 				// this funtion is a wrapper and achieved the same thing, tidies up the code
@@ -598,7 +726,7 @@ int main(void)
 			}
 		
 			WS2812_sendbuf(BUFFERSIZE);
-			Delay(41667);			
+			Delay(50000);			
 		}				
 	}
 }
