@@ -91,6 +91,7 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="adc.c" />
     <ClCompile Include="system_stm32f10x.c" />
+    <ClCompile Include="ws2812_lib.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="debug.mak" />
@@ -131,6 +132,7 @@
     <ClInclude Include="lightning_prg.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="stm32f10x_conf.h" />
+    <ClInclude Include="ws2812_lib.h" />
   </ItemGroup>
   <ItemGroup>
     <Xml Include="stm32.xml" />

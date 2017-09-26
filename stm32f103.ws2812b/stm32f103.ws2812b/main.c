@@ -28,7 +28,6 @@
 uint16_t WS2812_IO_High = 0xFFFF;
 uint16_t WS2812_IO_Low = 0x0000;
 
-volatile uint8_t WS2812_TC = 1;
 volatile uint8_t TIM2_overflows = 0;
 
 static uint32_t usart_recieve = 0; // получаемые данные из USART  
@@ -227,42 +226,7 @@ void USART_init(void)
 	UARTSend(welcome_str, sizeof(welcome_str));
 }
 
-/* Transmit the frambuffer with buffersize number of bytes to the LEDs 
- * buffersize = (#LEDs / 16) * 24 */
-void WS2812_sendbuf(uint32_t buffersize)
-{		
-	// transmission complete flag, indicate that transmission is taking place
-	WS2812_TC = 0;
-	
-	// clear all relevant DMA flags
-	DMA_ClearFlag(DMA1_FLAG_TC2 | DMA1_FLAG_HT2 | DMA1_FLAG_GL2 | DMA1_FLAG_TE2);
-	DMA_ClearFlag(DMA1_FLAG_TC5 | DMA1_FLAG_HT5 | DMA1_FLAG_GL5 | DMA1_FLAG_TE5);
-	DMA_ClearFlag(DMA1_FLAG_HT7 | DMA1_FLAG_GL7 | DMA1_FLAG_TE7);
-	
-	// configure the number of bytes to be transferred by the DMA controller
-	DMA_SetCurrDataCounter(DMA1_Channel2, buffersize);
-	DMA_SetCurrDataCounter(DMA1_Channel5, buffersize);
-	DMA_SetCurrDataCounter(DMA1_Channel7, buffersize);
-	
-	// clear all TIM2 flags
-	TIM2->SR = 0;
-	
-	// enable the corresponding DMA channels
-	DMA_Cmd(DMA1_Channel2, ENABLE);
-	DMA_Cmd(DMA1_Channel5, ENABLE);
-	DMA_Cmd(DMA1_Channel7, ENABLE);
-	
-	// IMPORTANT: enable the TIM2 DMA requests AFTER enabling the DMA channels!
-	TIM_DMACmd(TIM2, TIM_DMA_CC1, ENABLE);
-	TIM_DMACmd(TIM2, TIM_DMA_CC2, ENABLE);
-	TIM_DMACmd(TIM2, TIM_DMA_Update, ENABLE);
-	
-	// preload counter with 29 so TIM2 generates UEV directly to start DMA transfer
-	TIM_SetCounter(TIM2, 29);
-	
-	// start TIM2
-	TIM_Cmd(TIM2, ENABLE);
-}
+
 
 /* DMA1 Channel7 Interrupt Handler gets executed once the complete framebuffer has been transmitted to the LEDs */
 void DMA1_Channel7_IRQHandler(void)
@@ -320,6 +284,7 @@ void USART1_IRQHandler(void)
 	if ((USART1->SR & USART_FLAG_RXNE) != (u16)RESET)
 	{
 		usart_recieve = USART_ReceiveData(USART1);
+		
 		if (usart_recieve == '1') {
 			GPIO_WriteBit(GPIOA, GPIO_Pin_8, Bit_SET);		// Устанавливаем '1' на 8 ноге
 			UARTSend("LED ON\r\n", sizeof("LED ON\r\n"));	// Выводим надпись в UART
@@ -352,192 +317,19 @@ void UARTSend(const char *pucBuffer, uint32_t ulCount)
 	}
 }
 
-/* This function sets the color of a single pixel in the framebuffer 
- * 
- * Arguments:
- * row = the channel number/LED strip the pixel is in from 0 to 15
- * column = the column/LED position in the LED string from 0 to number of LEDs per strip
- * red, green, blue = the RGB color triplet that the pixel should display 
- */
-void WS2812_framedata_setPixel(uint8_t row, uint16_t column, uint32_t rgb)
-{
-	uint8_t i;
-    uint8_t red   = (uint8_t)((rgb & 0x00FF0000) >> 16);
-    uint8_t green = (uint8_t)((rgb & 0x0000FF00) >> 8);
-    uint8_t blue  = (uint8_t)(rgb & 0x000000FF);
 
-	for (i = 0; i < 8; i++)
-	{
-		// clear the data for pixel 
-		WS2812_IO_framedata[((column * 24) + i)] &= ~(0x01 << row);
-		WS2812_IO_framedata[((column * 24) + 8 + i)] &= ~(0x01 << row);
-		WS2812_IO_framedata[((column * 24) + 16 + i)] &= ~(0x01 << row);
-		// write new data for pixel
-		WS2812_IO_framedata[((column * 24) + i)] |= ((((green << i) & 0x80) >> 7) << row);
-		WS2812_IO_framedata[((column * 24) + 8 + i)] |= ((((red << i) & 0x80) >> 7) << row);
-		WS2812_IO_framedata[((column * 24) + 16 + i)] |= ((((blue << i) & 0x80) >> 7) << row);
-	}
-}
-
-/* This function is a wrapper function to set all LEDs in the complete row to the specified color
- * 
- * Arguments:
- * row = the channel number/LED strip to set the color of from 0 to 15
- * columns = the number of LEDs in the strip to set to the color from 0 to number of LEDs per strip
- * red, green, blue = the RGB color triplet that the pixels should display 
- */
-void WS2812_framedata_setRow(uint8_t row, uint16_t columns, uint32_t rgb)
-{
-	uint8_t i;
-	for (i = 0; i < columns; i++)
-	{
-		WS2812_framedata_setPixel(row, i, rgb);
-	}
-}
-
-/* This function is a wrapper function to set all the LEDs in the column to the specified color
- * 
- * Arguments:
- * rows = the number of channels/LED strips to set the row in from 0 to 15
- * column = the column/LED position in the LED string from 0 to number of LEDs per strip
- * red, green, blue = the RGB color triplet that the pixels should display 
- */
-void WS2812_framedata_setColumn(uint8_t rows, uint16_t column, uint32_t rgb)
-{
-	uint8_t i;
-	for (i = 0; i < rows; i++)
-	{
-		WS2812_framedata_setPixel(i, column, rgb);
-	}
-}
-
-uint32_t tone_correction_func(uint32_t input_tone, 
-							   uint8_t r_index,
-						 rgb_operation r_op,
-							   uint8_t g_index,
-						 rgb_operation g_op,
-						       uint8_t b_index,
-						 rgb_operation b_op)
-{
-	uint32_t out = 0x00000000;
-	uint8_t red   = (uint8_t)((input_tone & 0x00FF0000) >> 16);
-	uint8_t green = (uint8_t)((input_tone & 0x0000FF00) >> 8);
-	uint8_t blue  = (uint8_t)(input_tone & 0x000000FF);
-	
-	switch (r_op)
-	{
-		case ADD:
-		
-		// проверяем на переполнение.
-		if ((red + r_index) <= 0xFF)
-		{
-			red += r_index;			
-		}
-		else
-		{
-			red = 0xFF;
-		}
-
-	    break;
-		
-		case SUB:
-		
-		// проверяем на переполнение.
-		if ((red - r_index) >= 0x00)
-		{
-			red -= r_index;			
-		}
-		else
-		{
-			red = 0x00;
-		}
-		
-		break;		
-	
-	default:
-		break;
-	}
-	
-	switch (g_op)
-	{
-	case ADD:
-		
-	    // проверяем на переполнение.
-		if ((green + g_index) <= 0xFF)
-		{
-			green += g_index;			
-		}
-		else
-		{
-			green = 0xFF;
-		}
-
-		break;
-		
-	case SUB:
-		
-	    // проверяем на переполнение.
-		if ((green - g_index) >= 0x00)
-		{
-			green -= g_index;			
-		}
-		else
-		{
-			green = 0x00;
-		}
-		
-		break;		
-	
-	default:
-		break;
-	}
-	
-	switch (b_op)
-	{
-	case ADD:
-		
-	    // проверяем на переполнение.
-		if ((blue + b_index) <= 0xFF)
-		{
-			blue += b_index;			
-		}
-		else
-		{
-			blue = 0xFF;
-		}
-
-		break;
-		
-	case SUB:
-		
-	    // проверяем на переполнение.
-		if ((blue - b_index) >= 0x00)
-		{
-			blue -= b_index;			
-		}
-		else
-		{
-			blue = 0x00;
-		}
-		
-		break;		
-	
-	default:
-		break;
-	}
-	
-	out |= ((uint32_t)red << 16);
-	out |= ((uint32_t)green << 8);
-	out |=  (uint32_t)blue;
-	
-	return out;
-}
 
 int main(void) 
 {	
-	uint8_t i,j;
-	uint32_t rgb_after_correct;
-	uint32_t rng_val;
+	static uint8_t i,j;
+	static uint32_t rgb_after_correct;
+	static uint32_t rng_val;
+	static uint8_t  red_coeff,
+			      green_coeff,
+			       blue_coeff;
+	static rgb_operation red_op,
+						 green_op,
+						 blue_op;
 	
 	GPIO_init();
 	DMA_init();
@@ -550,10 +342,21 @@ int main(void)
 		// color values defined in the colors array
 	//	for (i = 0; i < NUM_OF_FRAMES; i++)
 	//	{
-						
+			// выделяем цвета из коэффициента что пришел по Bluetooth
+			red_coeff = put_rgb_mask(usart_recieve, RED);	
+			green_coeff = put_rgb_mask(usart_recieve, GREEN);	
+			blue_coeff = put_rgb_mask(usart_recieve, BLUE);	
+			// выделяем операции, которые нужно провести с цветом в кадре.
+		    red_op = eject_operation(usart_recieve, RED);
+		    green_op = eject_operation(usart_recieve, GREEN);
+		    blue_op = eject_operation(usart_recieve, BLUE);
+		
+
+	
+		
 			srand(adc_rng_get());   // зерно для получения случайного числа.
 			
-		    i = rand() % 24;	    // случайное число.
+		    i = rand() % 24;	    // случайный  кадр из 24-х.
 			
 			for (j = 0; j < NUMOFLEDS; j++)
 			{
@@ -561,7 +364,11 @@ int main(void)
 				while (!WS2812_TC);
 			
 				// корректируем оттенок всего костра.
-				rgb_after_correct = tone_correction_func(frames[i][j], 0xFF, ADD, 0x57, SUB, 0x37, SUB);
+			//  rgb_after_correct = tone_correction_func(frames[i][j], 0xFF, ADD, 0x57, SUB, 0x37, SUB);
+				
+				// корректируем оттенок всего костра тем, что по Bluetooth
+				// посылка по Bluetooth, которая делает костер похожим на костер: 0x40FF5737
+				rgb_after_correct = tone_correction_func(frames[i][j], red_coeff, red_op, green_coeff, green_op, blue_coeff, blue_op);
 				
 				// this approach sets each pixel individually
 				WS2812_framedata_setPixel(4, j, rgb_after_correct);
