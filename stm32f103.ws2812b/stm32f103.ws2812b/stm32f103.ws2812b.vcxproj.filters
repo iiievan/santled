@@ -35,9 +35,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="LEDBlink.c">
-      <Filter>Source files</Filter>
-    </ClCompile>
     <ClCompile Include="system_stm32f10x.c">
       <Filter>Source files</Filter>
     </ClCompile>
@@ -117,6 +114,9 @@
       <Filter>Source files\Device-specific files\StdPeriph</Filter>
     </ClCompile>
     <ClCompile Include="adc.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.c">
       <Filter>Source files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -221,6 +221,12 @@
       <Filter>Header files\Device-specific files\StdPeriph</Filter>
     </ClInclude>
     <ClInclude Include="adc.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="lightning_prg.h">
       <Filter>Header files</Filter>
     </ClInclude>
   </ItemGroup>
