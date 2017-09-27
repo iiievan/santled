@@ -1,7 +1,6 @@
 #ifndef _WS2812_LIB_H
 #define _WS2812_LIB_H
 
-#include <stm32f10x.h>
 #include <stm32f10x_conf.h>
 
 #define NUMOFLEDS 29

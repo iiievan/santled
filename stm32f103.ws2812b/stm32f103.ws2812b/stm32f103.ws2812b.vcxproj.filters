@@ -122,6 +122,12 @@
     <ClCompile Include="ws2812_lib.c">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="ring_buffer.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="usart.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile" />
@@ -233,6 +239,12 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="ws2812_lib.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="ring_buffer.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="usart.h">
       <Filter>Header files</Filter>
     </ClInclude>
   </ItemGroup>

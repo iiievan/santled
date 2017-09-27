@@ -90,7 +90,9 @@
     <ClCompile Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_wwdg.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="adc.c" />
+    <ClCompile Include="ring_buffer.c" />
     <ClCompile Include="system_stm32f10x.c" />
+    <ClCompile Include="usart.c" />
     <ClCompile Include="ws2812_lib.c" />
   </ItemGroup>
   <ItemGroup>
@@ -131,7 +133,9 @@
     <ClInclude Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_wwdg.h" />
     <ClInclude Include="lightning_prg.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="ring_buffer.h" />
     <ClInclude Include="stm32f10x_conf.h" />
+    <ClInclude Include="usart.h" />
     <ClInclude Include="ws2812_lib.h" />
   </ItemGroup>
   <ItemGroup>

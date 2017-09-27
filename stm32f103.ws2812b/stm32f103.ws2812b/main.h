@@ -7,6 +7,12 @@
 #include <stdlib.h>		    // srand, rand
 #include <lightning_prg.h>	// тут храним световые алгоритмы и программы.
 #include <ws2812_lib.h>
+#include <ring_buffer.h>
+#include <usart.h>
+#include <ring_buffer.h>
+
+#define __USE_C99_MATH	// для того чтобы тип bool был определен.
+#include <stdbool.h>
 
 /* this define sets the number of TIM2 overflows
  * to append to the data frame for the LEDs to 

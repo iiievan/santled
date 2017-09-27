@@ -30,7 +30,8 @@ uint16_t WS2812_IO_Low = 0x0000;
 
 volatile uint8_t TIM2_overflows = 0;
 
-static uint32_t usart_recieve = 0; // получаемые данные из USART  
+uint8_t usart_recieve = 0; // получаемые данные из USART
+ring_buffer usart_buffer = { 0 };
 
 /* simple delay counter to waste time, don't rely on for accurate timing */
 void Delay(__IO uint32_t nCount)
@@ -66,6 +67,7 @@ void GPIO_init(void)
 	// Конфигурируем USART1 Rx (PA.10) как вход без подтяжки 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 }
 
@@ -177,56 +179,6 @@ void DMA_init(void)
 	DMA_ITConfig(DMA1_Channel7, DMA_IT_TC, ENABLE);
 }
 
-void USART_init(void)
-{
-	const char welcome_str[] = " Welcome to Bluetooth!\r\n";
-	
-	USART_InitTypeDef USART_InitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
-	
-	/* затактируем USART1 */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-
-	/* USART1 сконфигурирован вот так:
-	        - BaudRate = 38400 baud
-	        - Word Length = 8 Bits
-	        - One Stop Bit
-	        - No parity
-	        - Hardware flow control disabled (RTS and CTS signals)
-	        - Receive and transmit enabled
-	        - USART Clock disabled
-	        - USART CPOL: Clock is active low
-	        - USART CPHA: Data is captured on the middle
-	        - USART LastBit: The clock pulse of the last data bit is not output to
-	                         the SCLK pin
-	*/
-	
-	USART_InitStructure.USART_BaudRate = 38400;		// Скорость передачи
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_Parity = USART_Parity_No;
-	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-
-	USART_Init(USART1, &USART_InitStructure);
-	
-    /* Настраиваем прерывание от USART1 */
-	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);	
-
-	/* Включаем USART1 */
-	USART_Cmd(USART1, ENABLE);
-	/* включаем прерывание по USART1 */
-	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-
-	/* приветствие в терминал. */
-	UARTSend(welcome_str, sizeof(welcome_str));
-}
-
-
 
 /* DMA1 Channel7 Interrupt Handler gets executed once the complete framebuffer has been transmitted to the LEDs */
 void DMA1_Channel7_IRQHandler(void)
@@ -275,49 +227,17 @@ void TIM2_IRQHandler(void)
 }
 
 /*
- *
  *  Функция обработчик прерывания USARTx.
  */
-
 void USART1_IRQHandler(void)
 {
-	if ((USART1->SR & USART_FLAG_RXNE) != (u16)RESET)
-	{
-		usart_recieve = USART_ReceiveData(USART1);
-		
-		if (usart_recieve == '1') {
-			GPIO_WriteBit(GPIOA, GPIO_Pin_8, Bit_SET);		// Устанавливаем '1' на 8 ноге
-			UARTSend("LED ON\r\n", sizeof("LED ON\r\n"));	// Выводим надпись в UART
-		}
-		else if (usart_recieve == '0') {
-			GPIO_WriteBit(GPIOA, GPIO_Pin_8, Bit_RESET);    // Устанавливаем '0' на 8 ноге
-			UARTSend("LED OFF\r\n", sizeof("LED OFF\r\n"));
-		}
-	}
+	usart_recieve = 0xFF;
+    
+	usart_sync_read(&usart_recieve);
+	rb_write(&usart_buffer, &usart_recieve, 1);
+	
+	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 }
-
-/*
-* Function Name  : UARTSend
-* Description    : Отсылает строку данных по UART.
-* Input          : - pucBuffer: buffers to be printed.
-*                : - ulCount  : buffer's length
-*/
-void UARTSend(const char *pucBuffer, uint32_t ulCount)
-{
-    //
-    // Loop while there are more characters to send.
-    //
-	while (ulCount--)
-	{
-		USART_SendData(USART1, (uint16_t) *pucBuffer++);
-		/* Loop until the end of transmission */
-		while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET)
-		{
-		}
-	}
-}
-
-
 
 int main(void) 
 {	
@@ -330,18 +250,26 @@ int main(void)
 	static rgb_operation red_op,
 						 green_op,
 						 blue_op;
+	uint16_t buffer_val = 0;
 	
 	GPIO_init();
 	DMA_init();
-	TIM2_init();		// таймер для работы с WS2812
-	adc_rng_init();	    // АЦП для получения случайного числа.
-	void USART_init();	// Настраиваем USART1 для работы с HC-06
+	TIM2_init();			// таймер для работы с WS2812
+	adc_rng_init();		    // АЦП для получения случайного числа.
+	
+	rb_init(&usart_buffer);	// инициализируем буффер только перед инициализацией usart,
+							// там разрешается прерывание в конце. 
+	usart_init();	        // настраиваем USART1 для работы с HC-06
+	
 	
 	while (1) {
 		// set two pixels (columns) in the defined row (channel 0) to the
 		// color values defined in the colors array
 	//	for (i = 0; i < NUM_OF_FRAMES; i++)
 	//	{
+		
+			buffer_val = rb_get_data_lenght(&usart_buffer);
+		
 			// выделяем цвета из коэффициента что пришел по Bluetooth
 			red_coeff = put_rgb_mask(usart_recieve, RED);	
 			green_coeff = put_rgb_mask(usart_recieve, GREEN);	
@@ -349,10 +277,7 @@ int main(void)
 			// выделяем операции, которые нужно провести с цветом в кадре.
 		    red_op = eject_operation(usart_recieve, RED);
 		    green_op = eject_operation(usart_recieve, GREEN);
-		    blue_op = eject_operation(usart_recieve, BLUE);
-		
-
-	
+		    blue_op = eject_operation(usart_recieve, BLUE);	
 		
 			srand(adc_rng_get());   // зерно для получения случайного числа.
 			
