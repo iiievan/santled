@@ -25,6 +25,7 @@ uint16_t rb_get_data_lenght(ring_buffer *buf);
 void rb_init(ring_buffer *buf);
 uint16_t rb_read(ring_buffer *buf, uint8_t *data, uint16_t len);
 uint8_t rb_write(ring_buffer *buf, uint8_t *data, uint16_t len);
+uint32_t rb_parce(ring_buffer *buf, uint16_t len);
 
 
 

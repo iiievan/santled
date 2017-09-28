@@ -51,3 +51,22 @@ uint8_t rb_write(ring_buffer *buf, uint8_t *data, uint16_t len) {
 	}
 	return RB_OK;
 }
+
+uint32_t rb_parce(ring_buffer *buf, uint16_t len)
+{
+	uint32_t output;
+	uint16_t i = 0;
+	
+	for (uint16_t i = 0; i <= len; i++)
+	{
+		if (buf->tail != buf->head)
+		{
+			output |= (uint32_t)(buf->storage[buf->tail] << (i*8));
+			
+			buf->tail = (buf->tail + 1) % RB_LENGTH ;
+		}
+	}
+
+	return output;
+}
+		

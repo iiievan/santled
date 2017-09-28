@@ -30,7 +30,10 @@ uint16_t WS2812_IO_Low = 0x0000;
 
 volatile uint8_t TIM2_overflows = 0;
 
-uint8_t usart_recieve = 0; // получаемые данные из USART
+uint32_t usart_recieve = 0;				// получаемые данные из USART
+static uint8_t usart_rx_byte_conter = 0;	// счетчик байт принятого сообщения.
+static bool you_have_new_message = false;
+
 ring_buffer usart_buffer = { 0 };
 
 /* simple delay counter to waste time, don't rely on for accurate timing */
@@ -231,10 +234,31 @@ void TIM2_IRQHandler(void)
  */
 void USART1_IRQHandler(void)
 {
-	usart_recieve = 0xFF;
+	uint8_t rx_temp = 0xFF;
     
-	usart_sync_read(&usart_recieve);
-	rb_write(&usart_buffer, &usart_recieve, 1);
+	usart_sync_read(&rx_temp);	// получаем байт данных
+	
+	// если приняли заголовок, тогда считаем байты - всего восемь.
+	if (rx_temp == 0x0A ||		// первый байт заголовка сообщения о корректировке
+		(usart_rx_byte_conter == 1 &&	// второй байт заголовка сообщения о корректировке
+		 rx_temp == 0xBC) ||
+		usart_rx_byte_conter > 1 )
+	{
+		usart_rx_byte_conter++;	
+		
+		if (usart_rx_byte_conter <= 0x07)
+		{
+			rb_write(&usart_buffer, &rx_temp, 1);	// пишем байт в кольцевой буффер	
+		}
+		else
+		{
+			usart_recieve = rb_parce(&usart_buffer, 7);
+			
+			usart_rx_byte_conter = 0;
+			
+		//  you_have_new_message = true;
+		}		
+	}	
 	
 	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 }
@@ -245,8 +269,8 @@ int main(void)
 	static uint32_t rgb_after_correct;
 	static uint32_t rng_val;
 	static uint8_t  red_coeff,
-			      green_coeff,
-			       blue_coeff;
+			        green_coeff,
+			        blue_coeff;
 	static rgb_operation red_op,
 						 green_op,
 						 blue_op;
