@@ -54,16 +54,24 @@ uint8_t rb_write(ring_buffer *buf, uint8_t *data, uint16_t len) {
 
 uint32_t rb_parce(ring_buffer *buf, uint16_t len)
 {
-	uint32_t output;
+	uint32_t output[2] = { 0, 0 };
 	uint16_t i = 0;
 	
-	for (uint16_t i = 0; i <= len; i++)
+	for (uint16_t i = 0; i <= len ; i++)
 	{
+
+		if (i < 4)
+		{
+			output[0] |= (uint32_t)(buf->storage[buf->head] << (i * 8)) ;	
+		}
+		else
+		{
+			output[1] |= (uint32_t)(buf->storage[buf->head] << (( i * 8) - 32));	
+		}
+		
 		if (buf->tail != buf->head)
 		{
-			output |= (uint32_t)(buf->storage[buf->tail] << (i*8));
-			
-			buf->tail = (buf->tail + 1) % RB_LENGTH ;
+			buf->head = (buf->head - 1) % RB_LENGTH;
 		}
 	}
 

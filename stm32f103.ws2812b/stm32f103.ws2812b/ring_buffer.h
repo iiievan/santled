@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 
-#define RB_LENGTH 1000
+#define RB_LENGTH 8
 
 typedef struct
 {

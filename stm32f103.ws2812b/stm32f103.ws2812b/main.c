@@ -252,7 +252,7 @@ void USART1_IRQHandler(void)
 		}
 		else
 		{
-			usart_recieve = rb_parce(&usart_buffer, 7);
+			usart_recieve = rb_parce(&usart_buffer, 8);
 			
 			usart_rx_byte_conter = 0;
 			
