@@ -6,7 +6,7 @@ void usart_init(void)
 	const char welcome_str[] = " Welcome to Bluetooth!\r\n";
 	
 	USART_InitTypeDef USART_InitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitTypeDef NVIC_usart_init;
 	
 	/* затактируем USART1 */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
@@ -35,11 +35,12 @@ void usart_init(void)
 	USART_Init(USART1, &USART_InitStructure);
 	
     /* Настраиваем прерывание от USART1 */
-	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);	
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+	NVIC_usart_init.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_usart_init.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_usart_init.NVIC_IRQChannelSubPriority = 1;
+	NVIC_usart_init.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_usart_init);	
 
 	/* Включаем USART1 */
 	USART_Cmd(USART1, ENABLE);
