@@ -241,6 +241,9 @@ void USART1_IRQHandler(void)
 	usart_sync_read(&rx_temp);	// получаем байт данных
 	
 	// если прин€ли заголовок, тогда считаем байты - всего восемь.
+	// общий формат сообщени€ 0A BC 40 FF 47 47 00 - дл€ начального кадра (костер)
+	// где 0ј BC - это заголовок дл€ смены цвета эффекта.
+	// 0x40 - код операции, 0RGB 0000 - там где единица, там операци€  сложить, где ноль вычесть.
 	if (rx_temp == 0x0A ||		// первый байт заголовка сообщени€ о корректировке
 		(usart_rx_byte_conter == 1 &&	// второй байт заголовка сообщени€ о корректировке
 		 rx_temp == 0xBC) ||
@@ -268,14 +271,14 @@ void USART1_IRQHandler(void)
 int main(void) 
 {	
 	static uint8_t i,j;
-	static uint32_t rgb_after_correct;
-	static uint32_t rng_val;
-	static uint8_t  red_coeff,
-			        green_coeff,
-			        blue_coeff;
-	static rgb_operation red_op,
-						 green_op,
-						 blue_op;
+	static uint32_t rgb_after_correct;	// переменна€ содержаща€ цвета пикселей после коррекции
+	// задаем начальные кадры дл€ костра.
+	static uint8_t    red_coeff   = 0xFF,
+			          green_coeff = 0x47,
+			          blue_coeff  = 0x47;
+	static rgb_operation red_op   = ADD,
+						 green_op = SUB,
+						 blue_op  = SUB;
 	uint16_t buffer_val = 0;
 	
 	GPIO_init();
