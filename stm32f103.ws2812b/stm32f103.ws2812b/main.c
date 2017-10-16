@@ -33,7 +33,10 @@ volatile uint8_t TIM2_overflows = 0;
 uint32_t usart_recieve = 0;				// получаемые данные из USART
 static uint8_t usart_rx_byte_conter = 0;	// счетчик байт принятого сообщения.
 static bool you_have_new_message = false;
+static bool time_to_change_color = false;
 
+static uint32_t change_color_timer = 0;
+	
 ring_buffer usart_buffer = { 0 };
 
 /* simple delay counter to waste time, don't rely on for accurate timing */
@@ -291,30 +294,65 @@ int main(void)
 	usart_init();	        // настраиваем USART1 для работы с HC-06
 	
 	
-	while (1) {
-		// set two pixels (columns) in the defined row (channel 0) to the
-		// color values defined in the colors array
-	//	for (i = 0; i < NUM_OF_FRAMES; i++)
-	//	{
-			if (true == you_have_new_message)
+	while (1) {	   
+		
+			if (change_color_timer >= CHANGE_COLOR_TIME)
 			{
-				// выделяем цвета из коэффициента что пришел по Bluetooth
-				red_coeff   = usart_buffer.storage[3];	
-				green_coeff = usart_buffer.storage[4];	
-				blue_coeff  = usart_buffer.storage[5];	
+				change_color_timer = 0;
+				
+				time_to_change_color = true;
+			}
+			else
+			{
+				change_color_timer++;
+			}
+		
+			if (true == time_to_change_color)
+			{
+				srand(adc_rng_get());   // зерно для получения случайного числа.
+				red_coeff   = rand() % 0xFF;	
+				srand(adc_rng_get());   // зерно для получения случайного числа.
+				green_coeff = rand() % 0xFF;	
+				srand(adc_rng_get());   // зерно для получения случайного числа.
+				blue_coeff  = rand() % 0xFF;	
 				// выделяем операции, которые нужно провести с цветом в кадре.
-				red_op   = ((usart_buffer.storage[2] & 0x40) >> 6);
-				green_op = ((usart_buffer.storage[2] & 0x20) >> 5);
-				blue_op  = ((usart_buffer.storage[2] & 0x10) >> 4);
-				
-				usart_buffer.head = usart_buffer.tail;
-				
-				you_have_new_message = false;
-			}		
+				if (red_coeff > green_coeff)
+				{
+					if (red_coeff > blue_coeff)
+					{
+						red_op   = ADD;
+						green_op = SUB;
+						blue_op  = SUB;						
+					}
+					else
+					{
+						red_op   = SUB;
+						green_op = SUB;
+						blue_op  = ADD;						
+					}
+				}
+				else
+				{
+					if (green_coeff > blue_coeff)
+					{
+						red_op   = SUB;
+						green_op = ADD;
+						blue_op  = SUB;	
+						
+					}
+					else
+					{
+						red_op   = SUB;
+						green_op = SUB;
+						blue_op  = ADD;						
+					}
+				}
+												
+				time_to_change_color = false;
+			}
 				
 		
-			srand(adc_rng_get());   // зерно для получения случайного числа.
-			
+			srand(adc_rng_get());   // зерно для получения случайного числа.			
 		    i = rand() % 24;	    // случайный  кадр из 24-х.
 			
 			for (j = 0; j < NUMOFLEDS; j++)

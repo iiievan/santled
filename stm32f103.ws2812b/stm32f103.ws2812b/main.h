@@ -18,6 +18,7 @@
  * to append to the data frame for the LEDs to 
  * load the received data into their registers */
 #define WS2812_DEADPERIOD 19
+#define CHANGE_COLOR_TIME 0x23
 
 void Delay(__IO uint32_t);
 void GPIO_init(void);
