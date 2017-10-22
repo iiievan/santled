@@ -30,7 +30,7 @@ void WS2812_framedata_setColumn(uint8_t, uint16_t, uint32_t);
 uint8_t put_rgb_mask(uint32_t, rgb_mask);
 rgb_operation eject_operation(uint32_t, rgb_mask);
 uint32_t tone_correction_func(uint32_t, uint8_t, rgb_operation, uint8_t, rgb_operation, uint8_t, rgb_operation);
-frame_t *make_frame(uint32_t, uint8_t );
+frame_t make_frame(uint32_t, uint8_t );
 
 
 #endif

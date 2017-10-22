@@ -110,8 +110,9 @@ void TIM2_init(void)
 	TIM_OC2PreloadConfig(TIM2, TIM_OCPreload_Disable);
 	
 	/* configure TIM2 interrupt */
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
@@ -173,8 +174,9 @@ void DMA_init(void)
 	DMA_Init(DMA1_Channel7, &DMA_InitStructure);
 
 	/* configure DMA1 Channel7 interrupt */
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel7_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
@@ -239,6 +241,9 @@ void USART1_IRQHandler(void)
 	usart_sync_read(&rx_temp);	// получаем байт данных
 	
 	// если приняли заголовок, тогда считаем байты - всего восемь.
+	// общий формат сообщения 0A BC 40 FF 47 47 00 - для начального кадра (костер)
+	// где 0А BC - это заголовок для смены цвета эффекта.
+	// 0x40 - код операции, 0RGB 0000 - там где единица, там операция  сложить, где ноль вычесть.
 	if (rx_temp == 0x0A ||		// первый байт заголовка сообщения о корректировке
 		(usart_rx_byte_conter == 1 &&	// второй байт заголовка сообщения о корректировке
 		 rx_temp == 0xBC) ||
@@ -252,11 +257,11 @@ void USART1_IRQHandler(void)
 		}
 		else
 		{
-			usart_recieve = rb_parce(&usart_buffer, 8);
+		//  usart_recieve = rb_parce(&usart_buffer, 8);
 			
 			usart_rx_byte_conter = 0;
 			
-		//  you_have_new_message = true;
+		    you_have_new_message = true;
 		}		
 	}	
 	
@@ -266,17 +271,17 @@ void USART1_IRQHandler(void)
 int main(void) 
 {	
 	static uint8_t i,j;
-	static uint32_t rgb_after_correct;
-	static uint32_t rng_val;
-	static uint8_t  red_coeff,
-			        green_coeff,
-			        blue_coeff;
-	static rgb_operation red_op,
-						 green_op,
-						 blue_op;
+	static uint32_t input_rgb_tone;	// переменная содержащая цвета пикселей после коррекции
+	// задаем начальные кадры для костра.
+	static uint8_t    red_coeff   = 0xFF,
+			          green_coeff = 0x47,
+			          blue_coeff  = 0x47;
+	static rgb_operation red_op   = ADD,
+						 green_op = SUB,
+						 blue_op  = SUB;
 	uint16_t buffer_val = 0;
-	
-	frame_t rgb_frame;
+
+	static frame_t rgb_frame;
 	rgb_frame.pixel = (uint8_t)NUMOFLEDS;	// инициализаця
 	
 	GPIO_init();
@@ -290,48 +295,50 @@ int main(void)
 	
 	
 	while (1) {
-		// set two pixels (columns) in the defined row (channel 0) to the
-		// color values defined in the colors array
-	//	for (i = 0; i < NUM_OF_FRAMES; i++)
-	//	{
 		
-			buffer_val = rb_get_data_lenght(&usart_buffer);
-		
-			// выделяем цвета из коэффициента что пришел по Bluetooth
-			red_coeff = put_rgb_mask(usart_recieve, RED);	
-			green_coeff = put_rgb_mask(usart_recieve, GREEN);	
-			blue_coeff = put_rgb_mask(usart_recieve, BLUE);	
-			// выделяем операции, которые нужно провести с цветом в кадре.
-		    red_op = eject_operation(usart_recieve, RED);
-		    green_op = eject_operation(usart_recieve, GREEN);
-		    blue_op = eject_operation(usart_recieve, BLUE);	
+			if (true == you_have_new_message)
+			{
+				input_rgb_tone = 0;
+				
+				// выделяем цвета из коэффициента что пришел по Bluetooth
+				red_coeff   = usart_buffer.storage[3];	
+				green_coeff = usart_buffer.storage[4];	
+				blue_coeff  = usart_buffer.storage[5];	
+				// выделяем операции, которые нужно провести с цветом в кадре.
+				red_op   = ((usart_buffer.storage[2] & 0x40) >> 6);
+				green_op = ((usart_buffer.storage[2] & 0x20) >> 5);
+				blue_op  = ((usart_buffer.storage[2] & 0x10) >> 4);
+				
+	
+				usart_buffer.head = usart_buffer.tail;
+				
+				you_have_new_message = false;
+			}		
+				
+			input_rgb_tone |= ((uint32_t)red_coeff << 16);
+			input_rgb_tone |= ((uint32_t)green_coeff << 8);
+			input_rgb_tone |=  (uint32_t)blue_coeff;
 		
 			srand(adc_rng_get());   // зерно для получения случайного числа.
 			
-		    i = rand() % 24;	    // случайный  кадр из 24-х.
+		    i = rand() % 10;	    // случайный  кадр из 24-х.
+		
+			rgb_frame = make_frame(input_rgb_tone, i);
 			
 			for (j = 0; j < NUMOFLEDS; j++)
 			{
 				// wait until the last frame was transmitted
 				while (!WS2812_TC);
 			
-				// корректируем оттенок всего костра.
-			//  rgb_after_correct = tone_correction_func(frames[i][j], 0xFF, ADD, 0x57, SUB, 0x37, SUB);
-				
-				// корректируем оттенок всего костра тем, что по Bluetooth
-				// посылка по Bluetooth, которая делает костер похожим на костер: 0x40FF5737
-				rgb_after_correct = tone_correction_func(frames[i][j], red_coeff, red_op, green_coeff, green_op, blue_coeff, blue_op);
-				
 				// this approach sets each pixel individually
-				WS2812_framedata_setPixel(4, j, rgb_after_correct);
-				WS2812_framedata_setPixel(5, j, rgb_after_correct);
-				WS2812_framedata_setPixel(6, j, rgb_after_correct);
-				WS2812_framedata_setPixel(7, j, rgb_after_correct);
+				WS2812_framedata_setPixel(4, j, rgb_frame.pixels[j]);
+				WS2812_framedata_setPixel(5, j, rgb_frame.pixels[j]);
+				WS2812_framedata_setPixel(6, j, rgb_frame.pixels[j]);
+				WS2812_framedata_setPixel(7, j, rgb_frame.pixels[j]);
 			}
 		
 			WS2812_sendbuf(BUFFERSIZE);
-			Delay(400000);			
-	   //}				
+			Delay(400000);						
 	}
 }
 

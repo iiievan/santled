@@ -297,7 +297,7 @@ uint32_t tone_correction_func(uint32_t input_tone,
 }
 
 
-frame_t *make_frame(uint32_t rgb, uint8_t scale)
+frame_t make_frame(uint32_t rgb, uint8_t scale)
 {
 	static frame_t temp_frame;	
 	// иницилизируем указатель на пиксели.
@@ -309,7 +309,7 @@ frame_t *make_frame(uint32_t rgb, uint8_t scale)
 	uint8_t green = put_rgb_mask(rgb, GREEN);
 	uint8_t blue  = put_rgb_mask(rgb, BLUE);
 	
-	for (uint8_t i = NUMOFLEDS; i == 0; i--)
+	for (uint8_t i = NUMOFLEDS; i > 0; i--)
 	{
 		if (i > actual_frame_size)
 		{
@@ -332,5 +332,5 @@ frame_t *make_frame(uint32_t rgb, uint8_t scale)
 		temp_frame.pixel--;
 	}
 	
-	return &temp_frame;
+	return temp_frame;
 }
