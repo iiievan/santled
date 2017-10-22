@@ -295,3 +295,42 @@ uint32_t tone_correction_func(uint32_t input_tone,
 	
 	return out;
 }
+
+
+frame_t *make_frame(uint32_t rgb, uint8_t scale)
+{
+	static frame_t temp_frame;	
+	// иницилизируем указатель на пиксели.
+	temp_frame.pixel = (uint8_t)NUMOFLEDS;
+	
+	uint8_t actual_frame_size = ((NUMOFLEDS * scale) / 10);
+	uint32_t temp_color = rgb;
+	uint8_t red   = put_rgb_mask(rgb, RED);
+	uint8_t green = put_rgb_mask(rgb, GREEN);
+	uint8_t blue  = put_rgb_mask(rgb, BLUE);
+	
+	for (uint8_t i = NUMOFLEDS; i == 0; i--)
+	{
+		if (i > actual_frame_size)
+		{
+			// если кадр меньше количества светодиодов, лишние пиксели не зажигаем.
+			temp_frame.pixels[i] = 0x00000000;		
+		}
+		else
+		{
+			red = (red*i) / actual_frame_size;
+			green = (green*i) / actual_frame_size;
+			blue =	(blue*i) / actual_frame_size;
+			
+			temp_color |= ((uint32_t)red << 16);
+			temp_color |= ((uint32_t)green << 8);
+			temp_color |=  (uint32_t)blue; 
+			
+			temp_frame.pixels[i] = temp_color;
+		}
+		
+		temp_frame.pixel--;
+	}
+	
+	return &temp_frame;
+}

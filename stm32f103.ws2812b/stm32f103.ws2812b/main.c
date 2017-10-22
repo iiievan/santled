@@ -276,6 +276,9 @@ int main(void)
 						 blue_op;
 	uint16_t buffer_val = 0;
 	
+	frame_t rgb_frame;
+	rgb_frame.pixel = (uint8_t)NUMOFLEDS;	// инициализац€
+	
 	GPIO_init();
 	DMA_init();
 	TIM2_init();			// таймер дл€ работы с WS2812
