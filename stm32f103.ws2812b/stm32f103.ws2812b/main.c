@@ -274,8 +274,8 @@ int main(void)
 	static uint32_t input_rgb_tone;	// переменная содержащая цвета пикселей после коррекции
 	// задаем начальные кадры для костра.
 	static uint8_t    red_coeff   = 0xFF,
-			          green_coeff = 0x47,
-			          blue_coeff  = 0x47;
+			          green_coeff = 0x03,
+			          blue_coeff  = 0x03;
 	static rgb_operation red_op   = ADD,
 						 green_op = SUB,
 						 blue_op  = SUB;
@@ -323,7 +323,7 @@ int main(void)
 			
 		    i = rand() % 10;	    // случайный  кадр из 24-х.
 		
-			rgb_frame = make_frame(input_rgb_tone, i);
+			fill_frame(&rgb_frame, input_rgb_tone, i);
 			
 			for (j = 0; j < NUMOFLEDS; j++)
 			{
