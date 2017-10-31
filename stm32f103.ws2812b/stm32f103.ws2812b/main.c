@@ -34,6 +34,8 @@ uint32_t usart_recieve = 0;				// получаемые данные из USART
 static uint8_t usart_rx_byte_conter = 0;	// счетчик байт принятого сообщения.
 static bool you_have_new_message = false;
 
+static uint32_t usart_buffer_reset_tmr = 0;	// Таймер сброса Буффера, если получили не полные восемь байт
+
 ring_buffer usart_buffer = { 0 };
 
 /* simple delay counter to waste time, don't rely on for accurate timing */
@@ -249,7 +251,8 @@ void USART1_IRQHandler(void)
 		 rx_temp == 0xBC) ||
 		usart_rx_byte_conter > 1 )
 	{
-		usart_rx_byte_conter++;	
+		usart_rx_byte_conter++;
+		usart_buffer_reset_tmr = 0;	// обнуляем таймер чтобы принять новое сообщение.	
 		
 		if (usart_rx_byte_conter <= 0x07)
 		{
@@ -294,51 +297,72 @@ int main(void)
 	usart_init();	        // настраиваем USART1 для работы с HC-06
 	
 	
-	while (1) {
+	while (1) 
+	{
+		if (usart_buffer_reset_tmr <= USART_BUFFER_RESET_TIME)
+		{
+			usart_buffer_reset_tmr++;
+		}
+		else
+		{
+			// по истечение времени таймера обнуляем его и 
+			// сравниваем хвост с головой, 
+			usart_buffer_reset_tmr = 0;
+			usart_buffer.head = usart_buffer.tail;
+			USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+		}
 		
-			if (true == you_have_new_message)
-			{
-				input_rgb_tone = 0;
-				
-				// выделяем цвета из коэффициента что пришел по Bluetooth
-				red_coeff   = usart_buffer.storage[3];	
-				green_coeff = usart_buffer.storage[4];	
-				blue_coeff  = usart_buffer.storage[5];	
-				// выделяем операции, которые нужно провести с цветом в кадре.
-				red_op   = ((usart_buffer.storage[2] & 0x40) >> 6);
-				green_op = ((usart_buffer.storage[2] & 0x20) >> 5);
-				blue_op  = ((usart_buffer.storage[2] & 0x10) >> 4);
-				
+		if (true == you_have_new_message)
+		{
+			input_rgb_tone = 0;
+			
+			// выделяем цвета из коэффициента что пришел по Bluetooth
+			red_coeff   = usart_buffer.storage[3];	
+			green_coeff = usart_buffer.storage[4];	
+			blue_coeff  = usart_buffer.storage[5];	
+			// выделяем операции, которые нужно провести с цветом в кадре.
+			red_op   = ((usart_buffer.storage[2] & 0x40) >> 6);
+			green_op = ((usart_buffer.storage[2] & 0x20) >> 5);
+			blue_op  = ((usart_buffer.storage[2] & 0x10) >> 4);
+			
 	
-				usart_buffer.head = usart_buffer.tail;
-				
-				you_have_new_message = false;
-			}		
-				
+			usart_buffer.head = usart_buffer.tail;
+			
 			input_rgb_tone |= ((uint32_t)red_coeff << 16);
 			input_rgb_tone |= ((uint32_t)green_coeff << 8);
 			input_rgb_tone |=  (uint32_t)blue_coeff;
-		
-			srand(adc_rng_get());   // зерно для получения случайного числа.
 			
-		    i = rand() % 10;	    // случайный  кадр из 24-х.
-		
-			fill_frame(&rgb_frame, input_rgb_tone, i);
+			you_have_new_message = false;
+		}		
 			
-			for (j = 0; j < NUMOFLEDS; j++)
-			{
-				// wait until the last frame was transmitted
-				while (!WS2812_TC);
-			
-				// this approach sets each pixel individually
-				WS2812_framedata_setPixel(4, j, rgb_frame.pixels[j]);
-				WS2812_framedata_setPixel(5, j, rgb_frame.pixels[j]);
-				WS2812_framedata_setPixel(6, j, rgb_frame.pixels[j]);
-				WS2812_framedata_setPixel(7, j, rgb_frame.pixels[j]);
-			}
+
 		
-			WS2812_sendbuf(BUFFERSIZE);
-			Delay(400000);						
+		srand(adc_rng_get());   // зерно для получения случайного числа.
+		
+		i = rand() % 10;	    // случайный  кадр из 24-х.
+		
+		#warning закомментил на время отладки приложения с Эдом.
+		//fill_frame(&rgb_frame, input_rgb_tone, i);
+		
+		for (j = 0; j < NUMOFLEDS; j++)
+		{
+			// wait until the last frame was transmitted
+			while (!WS2812_TC);
+		
+			#warning закомментил на время отладки приложения с эдом.
+			//WS2812_framedata_setPixel(4, j, rgb_frame.pixels[j]);
+			//WS2812_framedata_setPixel(5, j, rgb_frame.pixels[j]);
+			//WS2812_framedata_setPixel(6, j, rgb_frame.pixels[j]);
+			//WS2812_framedata_setPixel(7, j, rgb_frame.pixels[j]);
+			
+			WS2812_framedata_setPixel(4, j, input_rgb_tone);
+			WS2812_framedata_setPixel(5, j, input_rgb_tone);
+			WS2812_framedata_setPixel(6, j, input_rgb_tone);
+			WS2812_framedata_setPixel(7, j, input_rgb_tone);
+		}
+		
+		WS2812_sendbuf(BUFFERSIZE);
+		Delay(400000);						
 	}
 }
 
