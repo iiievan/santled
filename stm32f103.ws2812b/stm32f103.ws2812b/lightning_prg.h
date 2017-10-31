@@ -27,6 +27,7 @@
 //color_t frames[][] = 
 // попробовать потом вот это.
 
+
 /* Array defining 12 color triplets to be displayed */
 uint8_t colors[12][3] = 
 {
