@@ -1,2 +1,5 @@
 stm32f103.ws2812b/CodeDB/
 stm32f103.ws2812b/stm32f103.ws2812b/Debug/
+*.uvguix.*
+stm32f103.ws2812b/DebugConfig/debug_STM32F107RC_1.0.0.dbgconf
+stm32f103.ws2812b/out/
