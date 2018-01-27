@@ -13,9 +13,18 @@ void WS2812_sendbuf(uint32_t buffersize)
 	WS2812_TC = 0;
 	
 	// clear all relevant DMA flags
-	DMA_ClearFlag(DMA1_FLAG_TC2 | DMA1_FLAG_HT2 | DMA1_FLAG_GL2 | DMA1_FLAG_TE2);
-	DMA_ClearFlag(DMA1_FLAG_TC5 | DMA1_FLAG_HT5 | DMA1_FLAG_GL5 | DMA1_FLAG_TE5);
-	DMA_ClearFlag(DMA1_FLAG_HT7 | DMA1_FLAG_GL7 | DMA1_FLAG_TE7);
+	DMA_ClearFlag(DMA1_FLAG_TC2 |	// channel 2 transfer complete flag
+								DMA1_FLAG_HT2 | // channel 2 half transfer flag
+								DMA1_FLAG_GL2 |	// channel 2 global interrupt flag
+								DMA1_FLAG_TE2);	// channel 2 transfer error flag
+	DMA_ClearFlag(DMA1_FLAG_TC5 | // channel 5 transfer complete flag
+								DMA1_FLAG_HT5 | // channel 5 half transfer flag
+								DMA1_FLAG_GL5 | // channel 5 global interrupt flag
+								DMA1_FLAG_TE5); // channel 5 transfer error flag
+	DMA_ClearFlag(//DMA1_FLAG_TC7 |	// channel 7 transfer complete flag, comment because we enable interrupt in handle
+								DMA1_FLAG_HT7 | // channel 7 half transfer flag
+								DMA1_FLAG_GL7 | // channel 7 global interrupt flag
+								DMA1_FLAG_TE7); // channel 7 transfer error flag
 	
 	// configure the number of bytes to be transferred by the DMA controller
 	DMA_SetCurrDataCounter(DMA1_Channel2, buffersize);

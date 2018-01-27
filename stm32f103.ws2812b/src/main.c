@@ -206,6 +206,8 @@ void DMA1_Channel7_IRQHandler(void)
 }
 
 /* TIM2 Interrupt Handler gets executed on every TIM2 Update if enabled */
+// Таймер обеспечивает мертвое время 50мкс перед передачей очередного кадра.
+// означает для ленты старт передачи.
 void TIM2_IRQHandler(void)
 {
 	// Clear TIM2 Interrupt Flag
@@ -241,6 +243,7 @@ void USART1_IRQHandler(void)
 	uint8_t rx_temp = 0xFF;
     
 	usart_sync_read(&rx_temp);	// получаем байт данных
+	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 	
 	// если приняли заголовок, тогда считаем байты - всего восемь.
 	// общий формат сообщения 0A BC 40 FF 47 47 00 - для начального кадра (костер)
@@ -264,11 +267,9 @@ void USART1_IRQHandler(void)
 			
 			usart_rx_byte_conter = 0;
 			
-		    you_have_new_message = true;
+		  you_have_new_message = true;
 		}		
 	}	
-	
-	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 }
 
 int main(void) 
@@ -346,8 +347,6 @@ int main(void)
 		
 		for (j = 0; j < NUMOFLEDS; j++)
 		{
-			// wait until the last frame was transmitted
-			while (!WS2812_TC);
 		
 			#warning закомментил на время отладки приложения с эдом.
 			//WS2812_framedata_setPixel(4, j, rgb_frame.pixels[j]);
@@ -362,6 +361,8 @@ int main(void)
 		}
 		
 		WS2812_sendbuf(BUFFERSIZE);
+		while (!WS2812_TC);	// ждем пока не закончится мертвое время 50мкс, старт передачи на ленте.
+		
 		Delay(400000);						
 	}
 }
