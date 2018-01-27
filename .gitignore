@@ -3,3 +3,6 @@ stm32f103.ws2812b/stm32f103.ws2812b/Debug/
 *.uvguix.*
 stm32f103.ws2812b/DebugConfig/debug_STM32F107RC_1.0.0.dbgconf
 stm32f103.ws2812b/out/
+stm32f103.ws2812b/EventRecorderStub.scvd
+stm32f103.ws2812b/JLinkLog.txt
+stm32f103.ws2812b/JLinkSettings.ini

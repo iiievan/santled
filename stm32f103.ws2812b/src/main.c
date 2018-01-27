@@ -243,7 +243,6 @@ void USART1_IRQHandler(void)
 	uint8_t rx_temp = 0xFF;
     
 	usart_sync_read(&rx_temp);	// получаем байт данных
-	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 	
 	// если приняли заголовок, тогда считаем байты - всего восемь.
 	// общий формат сообщения 0A BC 40 FF 47 47 00 - для начального кадра (костер)
@@ -269,7 +268,9 @@ void USART1_IRQHandler(void)
 			
 		  you_have_new_message = true;
 		}		
-	}	
+	}
+
+		USART_ClearITPendingBit(USART1, USART_IT_RXNE);	
 }
 
 int main(void) 
@@ -347,7 +348,8 @@ int main(void)
 		
 		for (j = 0; j < NUMOFLEDS; j++)
 		{
-		
+			while (!WS2812_TC);	// ждем пока не закончится мертвое время 50мкс, старт передачи на ленте.
+			
 			#warning закомментил на время отладки приложения с эдом.
 			//WS2812_framedata_setPixel(4, j, rgb_frame.pixels[j]);
 			//WS2812_framedata_setPixel(5, j, rgb_frame.pixels[j]);
@@ -360,9 +362,7 @@ int main(void)
 			WS2812_framedata_setPixel(7, j, input_rgb_tone);
 		}
 		
-		WS2812_sendbuf(BUFFERSIZE);
-		while (!WS2812_TC);	// ждем пока не закончится мертвое время 50мкс, старт передачи на ленте.
-		
+		WS2812_sendbuf(BUFFERSIZE);			
 		Delay(400000);						
 	}
 }
