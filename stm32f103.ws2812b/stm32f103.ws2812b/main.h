@@ -23,6 +23,7 @@
 void Delay(__IO uint32_t);
 void GPIO_init(void);
 void TIM2_init(void);
+void TIM3_init(void);
 void DMA_init(void);
 void USART_init(void);
 

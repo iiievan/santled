@@ -120,6 +120,41 @@ void TIM2_init(void)
 	NVIC_Init(&NVIC_InitStructure);
 }
 
+void TIM3_init(void)
+{
+    TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+    TIM_OCInitTypeDef TIM_OCInitStructure;
+    NVIC_InitTypeDef NVIC_InitStructure;
+    
+    uint16_t PrescalerValue;
+    
+    // TIM3 Periph clock enable
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+
+    PrescalerValue = (uint16_t)(SystemCoreClock / 72000000) - 1;
+    // конфигурируем таймер 3 для подсчета интервала между принимаемыми сообщениями по USART
+    TIM_TimeBaseStructure.TIM_Period = 500; 
+    TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+
+   /* Разрешаем прерывание по обновлению (в данном случае -
+   * по переполнению) счётчика таймера TIM3.
+   */
+	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+	/* Включаем таймер */
+	TIM_Cmd(TIM3, ENABLE);
+    
+    /* configure TIM2 interrupt */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+}
+
 void DMA_init(void)
 {
 	DMA_InitTypeDef DMA_InitStructure;
