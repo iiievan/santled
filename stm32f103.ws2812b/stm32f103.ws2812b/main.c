@@ -33,8 +33,12 @@ volatile uint8_t TIM2_overflows = 0;
 uint32_t usart_recieve = 0;				// получаемые данные из USART
 static uint8_t usart_rx_byte_conter = 0;	// счетчик байт принятого сообщения.
 static bool you_have_new_message = false;
+static bool usart_rxtx = false;				// идет прием/передача по usart
+static uint16_t usart_buffer_reset_tmr = 0;
 
-static uint32_t usart_buffer_reset_tmr = 0;	// Таймер сброса Буффера, если получили не полные восемь байт
+static uint8_t    red_coeff   = 0xFF,
+		          green_coeff = 0x03,
+		          blue_coeff  = 0x03;
 
 ring_buffer usart_buffer = { 0 };
 
@@ -115,7 +119,7 @@ void TIM2_init(void)
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 }
@@ -133,7 +137,7 @@ void TIM3_init(void)
 
     PrescalerValue = (uint16_t)(SystemCoreClock / 72000000) - 1;
     // конфигурируем таймер 3 для подсчета интервала между принимаемыми сообщениями по USART
-    TIM_TimeBaseStructure.TIM_Period = 500; 
+	TIM_TimeBaseStructure.TIM_Period = 10; 
     TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
@@ -143,11 +147,12 @@ void TIM3_init(void)
    * по переполнению) счётчика таймера TIM3.
    */
 	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
-	/* Включаем таймер */
-	TIM_Cmd(TIM3, ENABLE);
+		/* Выключаем таймер */
+	TIM_Cmd(TIM3, DISABLE);
+
     
-    /* configure TIM2 interrupt */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    /* configure TIM3 interrupt */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_3);
     NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
@@ -264,7 +269,29 @@ void TIM2_IRQHandler(void)
 		 * so it doesn't occur while transmitting data */
 		TIM_ITConfig(TIM2, TIM_IT_Update, DISABLE);
 		// finally indicate that the data frame has been transmitted
-		WS2812_TC = 1; 	
+		WS2812_TC = 1; 
+		
+		/* Включаем USART1 и прерывания от него для приема нового цвета */
+		USART_Cmd(USART1, ENABLE);
+	}
+}
+
+void TIM3_IRQHandler(void)
+{
+	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
+	{
+		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+		
+		usart_buffer_reset_tmr++;
+		
+		if (usart_buffer_reset_tmr >= UART_BUFER_RESET_INTERVAL)
+		{
+			usart_rxtx = false;
+			// указатель в начало буфера (обнуляем буфер для приема новых данных)
+			usart_buffer.head = usart_buffer.tail = 0;			
+			// передача завершена, извещаем об этом всех и останавливаем таймер.
+			TIM_Cmd(TIM3, DISABLE);
+		}
 	}
 }
 
@@ -273,37 +300,58 @@ void TIM2_IRQHandler(void)
  */
 void USART1_IRQHandler(void)
 {
-	uint8_t rx_temp = 0xFF;
-    
+	uint8_t rx_temp = 0xFF,
+			bufer_status = RB_OK;    
+	
 	usart_sync_read(&rx_temp);	// получаем байт данных
+	
+	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 	
 	// если приняли заголовок, тогда считаем байты - всего восемь.
 	// общий формат сообщения 0A BC 40 FF 47 47 00 - для начального кадра (костер)
 	// где 0А BC - это заголовок для смены цвета эффекта.
 	// 0x40 - код операции, 0RGB 0000 - там где единица, там операция  сложить, где ноль вычесть.
-	if (rx_temp == 0x0A ||		// первый байт заголовка сообщения о корректировке
-		(usart_rx_byte_conter == 1 &&	// второй байт заголовка сообщения о корректировке
+
+	if ((rx_temp == 0x0A && 
+		 usart_buffer.head == 0) ||		// первый байт заголовка сообщения о корректировке
+		(usart_buffer.head == 1 &&	    // второй байт заголовка сообщения о корректировке
 		 rx_temp == 0xBC) ||
-		usart_rx_byte_conter > 1 )
+		usart_buffer.head > 1 )
 	{
-		usart_rx_byte_conter++;
-		usart_buffer_reset_tmr = 0;	// обнуляем таймер чтобы принять новое сообщение.	
-		
-		if (usart_rx_byte_conter <= 0x07)
-		{
-			rb_write(&usart_buffer, &rx_temp, 1);	// пишем байт в кольцевой буффер	
+			
+		bufer_status = rb_write(&usart_buffer, &rx_temp, 1);	// пишем байт в кольцевой буффер	
+
+		if (bufer_status != RB_OK)
+		{			
+			// выделяем цвета из коэффициента что пришел по Bluetooth
+			// и сохраняем их.
+			red_coeff   = usart_buffer.storage[3];	
+			green_coeff = usart_buffer.storage[4];	
+			blue_coeff  = usart_buffer.storage[5];	
+			
+			you_have_new_message = true;	// флаг для обновления цвета в лентах.
+			
+			usart_buffer.head = usart_buffer.tail = 0;	// обнуляем буффер для приема следующего кадра.
+			
+			// передача завершена, извещаем об этом всех и останавливаем таймер.
+			TIM_Cmd(TIM3, DISABLE);	// Запускаем измерение интервала времени между посылками.
+
+			usart_rxtx = false;
 		}
 		else
 		{
-		//  usart_recieve = rb_parce(&usart_buffer, 8);
+			if (usart_rxtx != true)
+			{
+				TIM_Cmd(TIM3, ENABLE);	// Запускаем измерение интервала времени между посылками.
+				usart_buffer_reset_tmr = 0;
+				usart_rxtx = true;	    //  идет прием пакета по usart.	
+			}
 			
-			usart_rx_byte_conter = 0;
-			
-		    you_have_new_message = true;
-		}		
+			usart_buffer_reset_tmr = 0;
+		}
+		
+
 	}	
-	
-	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 }
 
 int main(void) 
@@ -311,9 +359,6 @@ int main(void)
 	static uint8_t i,j;
 	static uint32_t input_rgb_tone;	// переменная содержащая цвета пикселей после коррекции
 	// задаем начальные кадры для костра.
-	static uint8_t    red_coeff   = 0xFF,
-			          green_coeff = 0x03,
-			          blue_coeff  = 0x03;
 	static rgb_operation red_op   = ADD,
 						 green_op = SUB,
 						 blue_op  = SUB;
@@ -325,6 +370,7 @@ int main(void)
 	GPIO_init();
 	DMA_init();
 	TIM2_init();			// таймер для работы с WS2812
+	TIM3_init();			// таймер для измерения промежутков врмени.
 	adc_rng_init();		    // АЦП для получения случайного числа.
 	
 	rb_init(&usart_buffer);	// инициализируем буффер только перед инициализацией usart,
@@ -333,71 +379,38 @@ int main(void)
 	
 	
 	while (1) 
-	{
-		if (usart_buffer_reset_tmr <= USART_BUFFER_RESET_TIME)
+	{	
+		// если пришло новое сообщение по USART то обновляем цвет.
+		if (you_have_new_message == true)
 		{
-			usart_buffer_reset_tmr++;
-		}
-		else
-		{
-			// по истечение времени таймера обнуляем его и 
-			// сравниваем хвост с головой, 
-			usart_buffer_reset_tmr = 0;
-			usart_buffer.head = usart_buffer.tail;
-			USART_ClearITPendingBit(USART1, USART_IT_RXNE);
-		}
+			srand(adc_rng_get());   // зерно для получения случайного числа.
 		
-		if (true == you_have_new_message)
-		{
-			input_rgb_tone = 0;
-			
-			// выделяем цвета из коэффициента что пришел по Bluetooth
-			red_coeff   = usart_buffer.storage[3];	
-			green_coeff = usart_buffer.storage[4];	
-			blue_coeff  = usart_buffer.storage[5];	
-			// выделяем операции, которые нужно провести с цветом в кадре.
-			red_op   = ((usart_buffer.storage[2] & 0x40) >> 6);
-			green_op = ((usart_buffer.storage[2] & 0x20) >> 5);
-			blue_op  = ((usart_buffer.storage[2] & 0x10) >> 4);
-			
-	
-			usart_buffer.head = usart_buffer.tail;
-			
+			i = rand() % 10;	    // случайный  кадр из 24-х.
+					
 			input_rgb_tone |= ((uint32_t)red_coeff << 16);
 			input_rgb_tone |= ((uint32_t)green_coeff << 8);
 			input_rgb_tone |=  (uint32_t)blue_coeff;
+		
+			for (j = 0; j < NUMOFLEDS; j++)
+			{
+			    // ждем пока не передастся последний кадр.
+			    while (!WS2812_TC);		
 			
-			you_have_new_message = false;
-		}		
-			
+				WS2812_framedata_setPixel(4, j, input_rgb_tone);
+				WS2812_framedata_setPixel(5, j, input_rgb_tone);
+				WS2812_framedata_setPixel(6, j, input_rgb_tone);
+				WS2812_framedata_setPixel(7, j, input_rgb_tone);
+			}
+		
+			if (usart_rxtx != true)
+			{
+				WS2812_sendbuf(BUFFERSIZE);
+			}
 
-		
-		srand(adc_rng_get());   // зерно для получения случайного числа.
-		
-		i = rand() % 10;	    // случайный  кадр из 24-х.
-		
-		#warning закомментил на время отладки приложения с Эдом.
-		//fill_frame(&rgb_frame, input_rgb_tone, i);
-		
-		for (j = 0; j < NUMOFLEDS; j++)
-		{
-			// wait until the last frame was transmitted
-			while (!WS2812_TC);
-		
-			#warning закомментил на время отладки приложения с эдом.
-			//WS2812_framedata_setPixel(4, j, rgb_frame.pixels[j]);
-			//WS2812_framedata_setPixel(5, j, rgb_frame.pixels[j]);
-			//WS2812_framedata_setPixel(6, j, rgb_frame.pixels[j]);
-			//WS2812_framedata_setPixel(7, j, rgb_frame.pixels[j]);
-			
-			WS2812_framedata_setPixel(4, j, input_rgb_tone);
-			WS2812_framedata_setPixel(5, j, input_rgb_tone);
-			WS2812_framedata_setPixel(6, j, input_rgb_tone);
-			WS2812_framedata_setPixel(7, j, input_rgb_tone);
+			you_have_new_message = false;
 		}
-		
-		WS2812_sendbuf(BUFFERSIZE);
-		Delay(400000);						
+
+		//Delay(400000);						
 	}
 }
 

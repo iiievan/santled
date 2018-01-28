@@ -18,7 +18,7 @@
  * to append to the data frame for the LEDs to 
  * load the received data into their registers */
 #define WS2812_DEADPERIOD 19
-#define USART_BUFFER_RESET_TIME 6
+#define UART_BUFER_RESET_INTERVAL	1000	   // интервал сообщений между байтами в посылке, если больше этого значения обнуляется буфер.
 
 void Delay(__IO uint32_t);
 void GPIO_init(void);
