@@ -19,7 +19,7 @@
  * load the received data into their registers */
 #define WS2812_DEADPERIOD 19
 #define UART_BUFER_RESET_INTERVAL	1000	   // интервал сообщений между байтами в посылке, если больше этого значения обнуляется буфер.
-
+#define ResetIntervalTmr() TIM_SetCounter(TIM3, 0)
 void Delay(__IO uint32_t);
 void GPIO_init(void);
 void TIM2_init(void);

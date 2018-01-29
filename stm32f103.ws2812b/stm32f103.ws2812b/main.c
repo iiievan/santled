@@ -37,8 +37,8 @@ static bool usart_rxtx = false;				// идет прием/передача по usart
 static uint16_t usart_buffer_reset_tmr = 0;
 
 static uint8_t    red_coeff   = 0xFF,
-		          green_coeff = 0x03,
-		          blue_coeff  = 0x03;
+		          green_coeff = 0xd4,
+		          blue_coeff  = 0x00;
 
 ring_buffer usart_buffer = { 0 };
 
@@ -116,10 +116,10 @@ void TIM2_init(void)
 	TIM_OC2PreloadConfig(TIM2, TIM_OCPreload_Disable);
 	
 	/* configure TIM2 interrupt */
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 }
@@ -135,24 +135,25 @@ void TIM3_init(void)
     // TIM3 Periph clock enable
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
-    PrescalerValue = (uint16_t)(SystemCoreClock / 72000000) - 1;
+    PrescalerValue = (uint16_t)(SystemCoreClock / 1000) - 1;	// equal (72000 - 1)
     // конфигурируем таймер 3 для подсчета интервала между принимаемыми сообщениями по USART
-	TIM_TimeBaseStructure.TIM_Period = 10; 
-    TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
+	TIM_TimeBaseStructure.TIM_Period = 100;		// 100 must give 0.1 ms buffer reset interval, 1000 - 1sec
+	TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
-
+	
    /* Разрешаем прерывание по обновлению (в данном случае -
    * по переполнению) счётчика таймера TIM3.
    */
 	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
 		/* Выключаем таймер */
 	TIM_Cmd(TIM3, DISABLE);
+	TIM_SetCounter(TIM3, 1);	// по сути сброс таймера.
 
     
     /* configure TIM3 interrupt */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_3);
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
@@ -216,10 +217,10 @@ void DMA_init(void)
 	DMA_Init(DMA1_Channel7, &DMA_InitStructure);
 
 	/* configure DMA1 Channel7 interrupt */
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel7_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 	/* enable DMA1 Channel7 transfer complete interrupt */
@@ -242,6 +243,8 @@ void DMA1_Channel7_IRQHandler(void)
 	TIM_DMACmd(TIM2, TIM_DMA_CC1, DISABLE);
 	TIM_DMACmd(TIM2, TIM_DMA_CC2, DISABLE);
 	TIM_DMACmd(TIM2, TIM_DMA_Update, DISABLE);
+	
+	WS2812_TC = 1; 
 	
 }
 
@@ -269,7 +272,7 @@ void TIM2_IRQHandler(void)
 		 * so it doesn't occur while transmitting data */
 		TIM_ITConfig(TIM2, TIM_IT_Update, DISABLE);
 		// finally indicate that the data frame has been transmitted
-		WS2812_TC = 1; 
+		//WS2812_TC = 1; 
 		
 		/* Включаем USART1 и прерывания от него для приема нового цвета */
 		USART_Cmd(USART1, ENABLE);
@@ -280,18 +283,17 @@ void TIM3_IRQHandler(void)
 {
 	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
 	{
-		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+		// по сути сюда попадаем в случае если прием не получился или
+		// получился мусор по USART и прошла 0.1 мс с момента приема последнего байта. 
+		// в случае если посылка удалась, то тут делать нечего.
+		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);		
 		
-		usart_buffer_reset_tmr++;
-		
-		if (usart_buffer_reset_tmr >= UART_BUFER_RESET_INTERVAL)
-		{
-			usart_rxtx = false;
-			// указатель в начало буфера (обнуляем буфер для приема новых данных)
-			usart_buffer.head = usart_buffer.tail = 0;			
-			// передача завершена, извещаем об этом всех и останавливаем таймер.
-			TIM_Cmd(TIM3, DISABLE);
-		}
+		// указатель в начало буфера (обнуляем буфер для приема новых данных)
+		usart_buffer.head = usart_buffer.tail = 0;			
+		// передача завершена, извещаем об этом всех и останавливаем таймер.
+		usart_rxtx = false;
+		TIM_Cmd(TIM3, DISABLE);	
+		ResetIntervalTmr();
 	}
 }
 
@@ -335,22 +337,22 @@ void USART1_IRQHandler(void)
 			
 			// передача завершена, извещаем об этом всех и останавливаем таймер.
 			TIM_Cmd(TIM3, DISABLE);	// Запускаем измерение интервала времени между посылками.
-
+			ResetIntervalTmr();
 			usart_rxtx = false;
 		}
 		else
 		{
 			if (usart_rxtx != true)
 			{
-				TIM_Cmd(TIM3, ENABLE);	// Запускаем измерение интервала времени между посылками.
+				ResetIntervalTmr();
+				TIM_Cmd(TIM3, ENABLE);		// Запускаем измерение интервала времени между посылками.
 				usart_buffer_reset_tmr = 0;
-				usart_rxtx = true;	    //  идет прием пакета по usart.	
+				
+				usart_rxtx = true;	       //  идет прием пакета по usart.	
 			}
 			
-			usart_buffer_reset_tmr = 0;
+			ResetIntervalTmr();
 		}
-		
-
 	}	
 }
 
@@ -370,13 +372,14 @@ int main(void)
 	GPIO_init();
 	DMA_init();
 	TIM2_init();			// таймер для работы с WS2812
-	TIM3_init();			// таймер для измерения промежутков врмени.
+	//TIM3_init();			// таймер для измерения промежутков врмени.
 	adc_rng_init();		    // АЦП для получения случайного числа.
 	
 	rb_init(&usart_buffer);	// инициализируем буффер только перед инициализацией usart,
 							// там разрешается прерывание в конце. 
-	usart_init();	        // настраиваем USART1 для работы с HC-06
+	//usart_init();	        // настраиваем USART1 для работы с HC-06
 	
+	you_have_new_message = true;	// задаем начальный цвет.
 	
 	while (1) 
 	{	
@@ -392,22 +395,23 @@ int main(void)
 			input_rgb_tone |=  (uint32_t)blue_coeff;
 		
 			for (j = 0; j < NUMOFLEDS; j++)
-			{
-			    // ждем пока не передастся последний кадр.
-			    while (!WS2812_TC);		
-			
+			{					
 				WS2812_framedata_setPixel(4, j, input_rgb_tone);
 				WS2812_framedata_setPixel(5, j, input_rgb_tone);
 				WS2812_framedata_setPixel(6, j, input_rgb_tone);
 				WS2812_framedata_setPixel(7, j, input_rgb_tone);
 			}
-		
+			
+			// не начинаем передачу данных в ленту пока идет прием по USART1.
 			if (usart_rxtx != true)
 			{
-				WS2812_sendbuf(BUFFERSIZE);
+				WS2812_sendbuf(BUFFERSIZE);				
+				// ждем пока не пройдет 50us интервала старта передачи.
+				while (!WS2812_TC);	
+				
+				// на случай если был прием данных чтобы еще раз сюда попасть.
+				you_have_new_message = false;
 			}
-
-			you_have_new_message = false;
 		}
 
 		//Delay(400000);						

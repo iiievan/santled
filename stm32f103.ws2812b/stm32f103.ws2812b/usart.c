@@ -37,16 +37,16 @@ void usart_init(void)
     /* Настраиваем прерывание от USART1 */
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);	
+	NVIC_Init(&NVIC_InitStructure);		
 
+	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);	// включаем прерывание по окончанию приема USART1
+	//USART_ITConfig(USART1, USART_IT_IDLE, ENABLE);  // а так же прерывание по простою на линии в течение приема одного байта
 	/* Включаем USART1 */
 	USART_Cmd(USART1, ENABLE);
-	/* включаем прерывание по USART1 */
-	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-
+	
 	/* приветствие в терминал. */
 	uart_send(welcome_str, sizeof(welcome_str));
 }
