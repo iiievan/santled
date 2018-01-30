@@ -5,10 +5,7 @@ uint8_t WS2812_TC = 1;
 /* Transmit the frambuffer with buffersize number of bytes to the LEDs 
  * buffersize = (#LEDs / 16) * 24 */
 void WS2812_sendbuf(uint32_t buffersize)
-{	
-	/* Выключаем USART1 и прерывания от него на время передачи кадра в светодиоды */
-	USART_Cmd(USART1, DISABLE);
-	
+{		
 	// transmission complete flag, indicate that transmission is taking place
 	WS2812_TC = 0;
 	
