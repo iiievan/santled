@@ -19,16 +19,19 @@
  * load the received data into their registers */
 #define WS2812_DEADPERIOD 19
 #define USART_BUFFER_RESET_TIME 6
+#define ResetIntervalTmr() TIM_SetCounter(TIM3, 0)
 
 void Delay(__IO uint32_t);
 void GPIO_init(void);
 void TIM2_init(void);
+void TIM3_init(void);
 void DMA_init(void);
 void USART_init(void);
 
 
 void DMA1_Channel7_IRQHandler(void);
 void TIM2_IRQHandler(void);
+void TIM3_IRQHandler(void);
 void USART1_IRQHandler(void);
 void UARTSend(const char *pucBuffer, uint32_t );
 
