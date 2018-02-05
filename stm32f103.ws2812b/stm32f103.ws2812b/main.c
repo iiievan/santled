@@ -416,15 +416,10 @@ int main(void)
 		
 			for (j = 0; j < NUMOFLEDS; j++)
 			{
-				// wait until the last frame was transmitted
-				while (!WS2812_TC)
-					;
-				
-				WS2812_framedata_setPixel(4, j, input_rgb_tone);
-				WS2812_framedata_setPixel(5, j, input_rgb_tone);
-				WS2812_framedata_setPixel(6, j, input_rgb_tone);
-				WS2812_framedata_setPixel(7, j, input_rgb_tone);
+				leds_buf[j] = input_rgb_tone;
 			}
+			
+			convert_rgb_to_dma_buf();
 		
 			WS2812_sendbuf(BUFFERSIZE);
 			Delay(400000);	

@@ -12,6 +12,8 @@ extern uint8_t WS2812_TC;
  * размер буффера = (#LEDs / 16) * 24 */
 uint16_t WS2812_IO_framedata[BUFFERSIZE];
 
+static uint32_t leds_buf[NUMOFLEDS];	// буфер для бегущих эффектов.
+
 typedef enum { ADD, SUB } rgb_operation;	// тип операции для функции коррекции тона tone_correction_func
 typedef enum { RED, GREEN, BLUE }rgb_mask;  // цвет для который нужно выделить из переменной 0x00RRGGBB.
 

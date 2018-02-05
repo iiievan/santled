@@ -5,7 +5,7 @@
 #include <stm32f10x.h>
 #include <adc.h>		    // случайное число
 #include <stdlib.h>		    // srand, rand
-#include <lightning_prg.h>	// тут храним световые алгоритмы и программы.
+#include <effects.h>	// тут храним световые алгоритмы и программы.
 #include <ws2812_lib.h>
 #include <ring_buffer.h>
 #include <usart.h>
