@@ -1,27 +1,3 @@
-
-/* 0xWS2812 16-Channel WS2812 interface library
- * 
- * Copyright (c) 2014 Elia Ritterbusch, http://eliaselectronics.com
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 #include <main.h>
 
 
@@ -47,13 +23,6 @@ static uint8_t    red_coeff   = 0xFF,
 static rgb_operation red_op   = ADD,
 					 green_op = SUB,
 					 blue_op  = SUB;
-
-/* simple delay counter to waste time, don't rely on for accurate timing */
-void Delay(__IO uint32_t nCount)
-{
-	while (nCount--) {
-	}
-}
 
 void GPIO_init(void)
 {
@@ -253,7 +222,6 @@ void DMA1_Channel7_IRQHandler(void)
 	TIM_DMACmd(TIM2, TIM_DMA_CC1, DISABLE);
 	TIM_DMACmd(TIM2, TIM_DMA_CC2, DISABLE);
 	TIM_DMACmd(TIM2, TIM_DMA_Update, DISABLE);
-	
 }
 
 /* TIM2 Interrupt Handler gets executed on every TIM2 Update if enabled */
@@ -280,7 +248,6 @@ void TIM2_IRQHandler(void)
 		 * so it doesn't occur while transmitting data */
 		TIM_ITConfig(TIM2, TIM_IT_Update, DISABLE);
 		// finally indicate that the data frame has been transmitted
-		WS2812_TC = 1; 	
 	}
 }
 /*
@@ -395,13 +362,14 @@ int main(void)
 		}
 		else
 		{
-			// по истечение времени таймера обнуляем его и 
+			// по истечение времени таймера останавливаем его и 
 			// сравниваем хвост с головой, 
 			usart_buffer_reset_tmr = USART_BUFFER_RESET_TIME + 1;
 			usart_buffer.head = usart_buffer.tail = 0;
 			usart_rxtx = false;
 		}
 		
+
 		if (true == you_have_new_message)
 		{
 			input_rgb_tone = 0;
@@ -415,18 +383,18 @@ int main(void)
 			input_rgb_tone |=  (uint32_t)blue_coeff;
 		
 			for (j = 0; j < NUMOFLEDS; j++)
-			{
+			{		
 				leds_buf[j] = input_rgb_tone;
 			}
 			
-			convert_rgb_to_dma_buf();
-		
-			WS2812_sendbuf(BUFFERSIZE);
-			Delay(400000);	
+			convert_rgb_to_dma_buf(leds_buf);		
+
 			you_have_new_message = false;
 		}
+
+		//running_rainbow(leds_buf);	
 		
-		Delay(400000);
+		//Delay(400000);
 	}
 }
 

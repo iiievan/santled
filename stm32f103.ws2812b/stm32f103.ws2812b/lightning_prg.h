@@ -1,8 +1,7 @@
-#ifndef _EFFECTS_H
-#define _EFFECTS_H
+#ifndef _LIGHTNING_PRG_H
+#define _LIGHTNING_PRG_H
 
 #include <stm32f10x.h>
-#include <main.h>
 
 #define NUM_OF_FRAMES 24
 #define RGB 3
@@ -28,6 +27,8 @@
 //color_t frames[][] = 
 // попробовать потом вот это.
 
+
+/* Array defining 12 color triplets to be displayed */
 uint8_t colors[12][3] = 
 {
 	{ 0xFF, 0x00, 0x00 },
@@ -43,7 +44,7 @@ uint8_t colors[12][3] =
 	{ 0xFF, 0x00, 0xFF },
 	{ 0xFF, 0x00, 0x80 }
 };
-	 
+ 
 static uint32_t frames[NUM_OF_FRAMES][32] = 
 { 
 	// 1-й кадр
@@ -243,12 +244,5 @@ static uint32_t frames[NUM_OF_FRAMES][32] =
 	//      17	        18		    19			20			21			22		    23		    24  
 	//      25	        26		    27			28			29			30		    31		    32 
 }; 
-
-static void convert_rgb_to_dma_buf(void);
-uint32_t hsv_to_rgb(int, int, int);
-uint32_t hsv_to_rgb_double(uint32_t, uint32_t, uint32_t);
-static void move_leds(uint32_t, uint32_t, uint32_t);
-static void fill_rainbow(uint32_t, uint32_t, uint8_t);
-void running_rainbow(void);
 
 #endif

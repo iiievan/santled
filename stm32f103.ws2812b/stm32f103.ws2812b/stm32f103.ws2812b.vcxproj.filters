@@ -128,9 +128,6 @@
     <ClCompile Include="usart.c">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="effects.c">
-      <Filter>Source files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile" />
@@ -247,7 +244,7 @@
     <ClInclude Include="usart.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="effects.h">
+    <ClInclude Include="lightning_prg.h">
       <Filter>Header files</Filter>
     </ClInclude>
   </ItemGroup>

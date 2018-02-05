@@ -5,7 +5,7 @@
 #include <stm32f10x.h>
 #include <adc.h>		    // случайное число
 #include <stdlib.h>		    // srand, rand
-#include <effects.h>	// тут храним световые алгоритмы и программы.
+#include <lightning_prg.h>	// тут храним световые алгоритмы и программы.
 #include <ws2812_lib.h>
 #include <ring_buffer.h>
 #include <usart.h>
@@ -18,7 +18,7 @@
  * to append to the data frame for the LEDs to 
  * load the received data into their registers */
 #define WS2812_DEADPERIOD 19
-#define USART_BUFFER_RESET_TIME 6
+#define USART_BUFFER_RESET_TIME 1000
 #define ResetIntervalTmr() TIM_SetCounter(TIM3, 0)
 
 void Delay(__IO uint32_t);

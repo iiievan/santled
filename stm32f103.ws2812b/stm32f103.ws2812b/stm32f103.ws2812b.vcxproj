@@ -88,7 +88,6 @@
     <ClCompile Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_tim.c" />
     <ClCompile Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_usart.c" />
     <ClCompile Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_wwdg.c" />
-    <ClCompile Include="effects.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="adc.c" />
     <ClCompile Include="ring_buffer.c" />
@@ -132,7 +131,7 @@
     <ClInclude Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_tim.h" />
     <ClInclude Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_usart.h" />
     <ClInclude Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_wwdg.h" />
-    <ClInclude Include="effects.h" />
+    <ClInclude Include="lightning_prg.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="ring_buffer.h" />
     <ClInclude Include="stm32f10x_conf.h" />
