@@ -5,11 +5,11 @@
 #include <stm32f10x.h>
 #include <adc.h>		    // случайное число
 #include <stdlib.h>		    // srand, rand
-#include <lightning_prg.h>	// тут храним световые алгоритмы и программы.
 #include <ws2812_lib.h>
 #include <ring_buffer.h>
 #include <usart.h>
 #include <ring_buffer.h>
+#include <low_level_init.h>
 
 #define __USE_C99_MATH	// для того чтобы тип bool был определен.
 #include <stdbool.h>
@@ -20,14 +20,6 @@
 #define WS2812_DEADPERIOD 19
 #define USART_BUFFER_RESET_TIME 1000
 #define ResetIntervalTmr() TIM_SetCounter(TIM3, 0)
-
-void Delay(__IO uint32_t);
-void GPIO_init(void);
-void TIM2_init(void);
-void TIM3_init(void);
-void DMA_init(void);
-void USART_init(void);
-
 
 void DMA1_Channel7_IRQHandler(void);
 void TIM2_IRQHandler(void);

@@ -128,6 +128,9 @@
     <ClCompile Include="usart.c">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="low_level_init.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile" />
@@ -244,7 +247,7 @@
     <ClInclude Include="usart.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="lightning_prg.h">
+    <ClInclude Include="low_level_init.h">
       <Filter>Header files</Filter>
     </ClInclude>
   </ItemGroup>

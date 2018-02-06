@@ -7,6 +7,8 @@
 #define NUMOFLEDS 29
 #define BUFFERSIZE (NUMOFLEDS*24)
 
+#define NUM_OF_FRAMES 24
+
 extern bool ws2812_transmit;
 
 /* буффер кадров WS2812 
