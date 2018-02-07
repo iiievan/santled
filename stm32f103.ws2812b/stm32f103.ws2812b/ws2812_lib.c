@@ -787,3 +787,32 @@ void running_rainbow(uint32_t * buf)
 		move_leds(NUMOFLEDS, 1, 200000, buf);		
 	}	
 }
+
+
+/*------------------------------------------------------------------------------
+  вращающаяся радуга 
+ ------------------------------------------------------------------------------*/
+void rotating_rainbow(uint32_t * buf)
+{
+	uint32_t hue = 0;
+	uint8_t i;
+	
+	while (1)
+	{		
+		for (i = 0; i < NUMOFLEDS; i++)
+		{		
+			buf[i] = hsv_to_rgb(hue, 255, 255); 
+
+		}
+		
+		convert_rgb_to_dma_buf(buf);
+		
+		Delay(400000);
+		
+		if (360 < (hue++))
+		{
+			hue = 0;
+		}
+	}	
+}
+

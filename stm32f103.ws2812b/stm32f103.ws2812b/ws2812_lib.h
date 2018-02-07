@@ -45,6 +45,7 @@ uint32_t hsv_to_rgb_double(uint32_t, uint32_t, uint32_t);
 void move_leds(uint32_t, uint32_t, uint32_t, uint32_t *);
 void fill_rainbow(uint32_t, uint32_t, uint8_t, uint32_t *);
 void running_rainbow(uint32_t *);
+void rotating_rainbow(uint32_t *);
 
 
 #endif
