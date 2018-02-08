@@ -9,10 +9,7 @@
 
 #define UART_SEND_TIMEOUT 0x0FFF    // чтобы не было бесконечной отправки по USART
 
-extern uint32_t usart_recieve; // получаемые данные из USART  
-
 void USART1_IRQHandler(void);
-void usart_init(void);
 void usart_deinit(void);
 void uart_send(const char *pucBuffer, uint32_t ulCount);
 void usart_sync_read(uint8_t * c);

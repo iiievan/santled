@@ -3,7 +3,6 @@
 
 volatile uint8_t TIM2_overflows = 0;
 
-uint32_t usart_recieve = 0;				// получаемые данные из USART
 static uint8_t usart_rx_byte_conter = 0;	// счетчик байт принятого сообщения.
 static bool you_have_new_message = false;
 static bool usart_rxtx = false;				// идет прием/передача по usart
@@ -12,14 +11,9 @@ static uint32_t usart_buffer_reset_tmr = 0;	// Таймер сброса Буффера, если получ
 
 ring_buffer usart_buffer = { 0 };
 
-// задаем начальные кадры для костра.
-static uint8_t    red_coeff   = 0xFF,
-		          green_coeff = 0x03,
-		          blue_coeff  = 0x03;
+// пиксель с начальным цветом.
+struct CRGB rgb_coeff = { 0x03, 0x03, 0xff };
 
-static rgb_operation red_op   = ADD,
-					 green_op = SUB,
-					 blue_op  = SUB;
 
 /* DMA1 Channel7 Interrupt Handler gets executed once the complete framebuffer has been transmitted to the LEDs */
 void DMA1_Channel7_IRQHandler(void)
@@ -113,10 +107,10 @@ void USART1_IRQHandler(void)
 		if (bufer_status != RB_OK)
 		{			
 			// выделяем цвета из коэффициента что пришел по Bluetooth
-			// и сохраняем их.
-			red_coeff   = usart_buffer.storage[3];	
-			green_coeff = usart_buffer.storage[4];	
-			blue_coeff  = usart_buffer.storage[5];	
+			// и сохраняем их.		
+			rgb_coeff.red   = usart_buffer.storage[3];
+			rgb_coeff.green = usart_buffer.storage[4];
+			rgb_coeff.blue  = usart_buffer.storage[5];			
 			
 			you_have_new_message = true;	// флаг для обновления цвета в лентах.
 			
@@ -146,25 +140,10 @@ void USART1_IRQHandler(void)
 
 int main(void) 
 {	
-	static uint8_t i,j;
-	static uint32_t input_rgb_tone;	// переменная содержащая цвета пикселей после коррекции
-
-	uint16_t buffer_val = 0;
-
-	static frame_t rgb_frame;
-	rgb_frame.pixel = (uint8_t)NUMOFLEDS;	// инициализаця
-	
-	GPIO_init();
-	DMA_init();
-	TIM2_init();			// таймер для работы с WS2812	
-	// закомментил, пока не работает таймер, как только ввести прерывание TIM3_IRQHandler 
-	// сразу же посылается какая то чушь в полоску LED
-  //TIM3_init();			// таймер для измерения промежутков врмени между приемом байтов по USART
-	adc_rng_init();		    // АЦП для получения случайного числа.
+	low_level_init();
 	
 	rb_init(&usart_buffer);	// инициализируем буффер только перед инициализацией usart,
-							// там разрешается прерывание в конце. 
-	usart_init();	        // настраиваем USART1 для работы с HC-06
+						    // там разрешается прерывание в конце.
 	
 	you_have_new_message = true;
 	
@@ -186,19 +165,15 @@ int main(void)
 
 		if (true == you_have_new_message)
 		{
-			input_rgb_tone = 0;
-			
+			static uint8_t i, j;
+				
 			srand(adc_rng_get());   // зерно для получения случайного числа.
 		
 			i = rand() % 24;	    // случайный  кадр из 24-х.
-		
-			input_rgb_tone |= ((uint32_t)red_coeff << 16);
-			input_rgb_tone |= ((uint32_t)green_coeff << 8);
-			input_rgb_tone |=  (uint32_t)blue_coeff;
-		
+					
 			for (j = 0; j < NUMOFLEDS; j++)
 			{		
-				leds_buf[j] = input_rgb_tone;
+				leds_buf[j] = rgb_coeff.rgb;
 			}
 			
 			convert_rgb_to_dma_buf(leds_buf);		
@@ -208,9 +183,9 @@ int main(void)
 
 		//running_rainbow(leds_buf);
 		
-		rotating_rainbow(leds_buf);
+		//rotating_rainbow(leds_buf);
 		
-		//Delay(400000);
+		Delay(400000);
 	}
 }
 

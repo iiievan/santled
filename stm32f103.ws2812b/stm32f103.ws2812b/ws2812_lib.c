@@ -401,6 +401,9 @@ rgb_operation eject_operation(uint32_t input_tone, rgb_mask color)
 	return result;
 }
 
+// первый костер был записан в огроммный массив
+// но если отображать его напрямую, то требуется коррекция цвета
+// иначе будет слишком блеклый, вот для этого и была создана эта функция.
 uint32_t tone_correction_func(uint32_t input_tone, 
 	uint8_t r_index,
 	rgb_operation r_op,
@@ -522,54 +525,6 @@ uint32_t tone_correction_func(uint32_t input_tone,
 	out |=  (uint32_t)blue;
 	
 	return out;
-}
-
-
-void fill_frame(frame_t * const temp_frame, uint32_t rgb, uint8_t scale)
-{
-	// иницилизируем указатель на пиксели.
-	temp_frame->pixel = (uint8_t)NUMOFLEDS;
-	
-	uint8_t actual_frame_size = ((NUMOFLEDS * scale) / 10);
-	uint32_t temp_color = 0;
-	uint8_t red   = put_rgb_mask(rgb, RED);
-	uint8_t green = put_rgb_mask(rgb, GREEN);
-	uint8_t blue  = put_rgb_mask(rgb, BLUE);
-	
-	// высчитываем коэффициенты на которые будем прибавлять каждый раз
-	uint8_t red_delta   =  red / actual_frame_size;
-	uint8_t green_delta =  green / actual_frame_size;
-	uint8_t blue_delta  =  blue / actual_frame_size;
-	
-	red   = 0xFF;
-	green = 0xFF;
-	blue  = 0xFF;
-	
-	for (uint8_t i = 0; i < NUMOFLEDS; i++)
-	{
-		temp_frame->pixels[i] = 0x00000000;
-	}
-	
-	for (uint8_t i = 0; i < NUMOFLEDS; i++)
-	{
-		if (i <= actual_frame_size)
-		{
-
-			temp_color |= ((uint32_t)(red) << 16);
-			temp_color |= ((uint32_t)(green) << 8);
-			temp_color |=  (uint32_t)(blue);					
-			
-			temp_frame->pixels[i] = temp_color;
-			
-			red   = red - red_delta;
-			green = green - green_delta;
-			blue  = blue - blue_delta;
-		}
-		
-		temp_color = 0;
-		
-		temp_frame->pixel = temp_frame->pixel - 1;
-	}
 }
 
 /*------------------------------------------------------------------------------
@@ -815,3 +770,26 @@ void rotating_rainbow(uint32_t * buf)
 	}	
 }
 
+
+void hsv_test(uint32_t * buf)
+{
+	uint32_t hue = 0;
+	uint8_t i;
+	
+	while (1)
+	{		
+		for (i = 0; i < NUMOFLEDS; i++)
+		{		
+			buf[i] = hsv_to_rgb(hue, 255, 255);
+		}
+		
+		convert_rgb_to_dma_buf(buf);
+		
+		Delay(40000);
+				
+		if (360 <= (++hue))
+		{
+			hue = 0;
+		}
+	}	
+}

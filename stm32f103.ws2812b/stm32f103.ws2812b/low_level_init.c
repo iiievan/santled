@@ -1,5 +1,38 @@
 #include <low_level_init.h>
 
+void low_level_init(void)
+{
+	GPIO_init();
+	DMA_init();
+	TIM2_init();			// таймер для работы с WS2812	
+	// закомментил, пока не работает таймер, как только ввести прерывание TIM3_IRQHandler 
+	// сразу же посылается какая то чушь в полоску LED
+  //TIM3_init();			// таймер для измерения промежутков врмени между приемом байтов по USART
+	adc_rng_init();		    // АЦП для получения случайного числа.	
+ 
+	usart_init();	        // настраиваем USART1 для работы с HC-06
+}
+
+void adc_rng_init(void)
+{
+	ADC_InitTypeDef ADC_InitStructure;
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+	ADC_InitStructure.ADC_NbrOfChannel          = ADC_Channel_12;
+	ADC_InitStructure.ADC_Mode                  = ADC_Mode_Independent;
+	ADC_InitStructure.ADC_ScanConvMode          = DISABLE;
+	ADC_InitStructure.ADC_ContinuousConvMode    = DISABLE;
+	ADC_InitStructure.ADC_ExternalTrigConv      = ADC_ExternalTrigConv_None;
+	ADC_InitStructure.ADC_DataAlign             = ADC_DataAlign_Right;
+	ADC_Init(ADC1, &ADC_InitStructure);
+
+
+	//  АЦП берем по внутренней опоре Vrefint - это 17-й канал.
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_17, 1, ADC_SampleTime_7Cycles5);
+
+	ADC_Cmd(ADC1, ENABLE);
+}
+
 void GPIO_init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -178,4 +211,53 @@ void DMA_init(void)
 	NVIC_Init(&NVIC_InitStructure);
 	/* enable DMA1 Channel7 transfer complete interrupt */
 	DMA_ITConfig(DMA1_Channel7, DMA_IT_TC, ENABLE);
+}
+
+void usart_init(void)
+{
+	const char welcome_str[] = " Welcome to Bluetooth!\r\n";
+	
+	USART_InitTypeDef USART_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	
+	/* затактируем USART1 */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+	/* USART1 сконфигурирован вот так:
+	        - BaudRate = 115200 baud
+	        - Word Length = 8 Bits
+	        - One Stop Bit
+	        - No parity
+	        - Hardware flow control disabled (RTS and CTS signals)
+	        - Receive and transmit enabled
+	        - USART Clock disabled
+	        - USART CPOL: Clock is active low
+	        - USART CPHA: Data is captured on the middle
+	        - USART LastBit: The clock pulse of the last data bit is not output to
+	                         the SCLK pin
+	*/
+	
+	USART_InitStructure.USART_BaudRate = 115200;		// Скорость передачи
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;
+	USART_InitStructure.USART_Parity = USART_Parity_No;
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+
+	USART_Init(USART1, &USART_InitStructure);
+	
+    /* Настраиваем прерывание от USART1 */
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;	 // включаем во вторую группу с высшим приоритетом.
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;			 // сначала обрабатываем USART, а потом TIM3
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);	
+
+	/* Включаем USART1 */
+	USART_Cmd(USART1, ENABLE);
+	/* включаем прерывание по USART1 */
+	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+
+	/* приветствие в терминал. */
+	uart_send(welcome_str, sizeof(welcome_str));
 }
