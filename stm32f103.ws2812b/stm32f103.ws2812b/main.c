@@ -173,7 +173,7 @@ int main(void)
 					
 			for (j = 0; j < NUMOFLEDS; j++)
 			{		
-				leds_buf[j] = rgb_coeff.rgb;
+				leds_buf[j].rgb = rgb_coeff.rgb;
 			}
 			
 			convert_rgb_to_dma_buf(leds_buf);		
@@ -181,7 +181,7 @@ int main(void)
 			you_have_new_message = false;
 		}
 
-		//running_rainbow(leds_buf);
+		running_rainbow(leds_buf);
 		
 		//rotating_rainbow(leds_buf);
 		

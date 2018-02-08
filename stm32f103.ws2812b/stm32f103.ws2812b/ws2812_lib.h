@@ -15,8 +15,6 @@ extern bool ws2812_transmit;
  * размер буффера = (#LEDs / 16) * 24 */
 uint16_t WS2812_IO_framedata[BUFFERSIZE];
 
-uint32_t leds_buf[NUMOFLEDS];	// буфер дл€ бегущих эффектов.
-
 typedef enum { ADD, SUB } rgb_operation;	// тип операции дл€ функции коррекции тона tone_correction_func
 typedef enum { RED, GREEN, BLUE }rgb_mask;  // цвет дл€ который нужно выделить из переменной 0x00RRGGBB.
 
@@ -77,6 +75,8 @@ typedef enum {
 	HUE_PINK   = 224
 } HSVHue;
 
+struct CRGB leds_buf[NUMOFLEDS];	// буфер дл€ бегущих эффектов.
+
 void Delay(__IO uint32_t);	// __IO - volatile defined
 void WS2812_sendbuf(uint32_t);
 void WS2812_framedata_setPixel(uint8_t, uint16_t, uint32_t);
@@ -87,13 +87,12 @@ rgb_operation eject_operation(uint32_t, rgb_mask);
 uint32_t tone_correction_func(uint32_t, uint8_t, rgb_operation, uint8_t, rgb_operation, uint8_t, rgb_operation);
 
 // Ёффекты.
-void convert_rgb_to_dma_buf(uint32_t *);
-uint32_t hsv_to_rgb(int, int, int);
-uint32_t hsv_to_rgb_double(uint32_t, uint32_t, uint32_t);
-void move_leds(uint32_t, uint32_t, uint32_t, uint32_t *);
-void fill_rainbow(uint32_t, uint32_t, uint8_t, uint32_t *);
-void running_rainbow(uint32_t *);
-void rotating_rainbow(uint32_t *);
+void convert_rgb_to_dma_buf(struct CRGB *);
+void hsv2rgb(struct CHSV *, struct CRGB *);
+void move_leds(uint32_t, uint32_t, uint32_t, struct CRGB  *);
+void fill_rainbow(const struct CHSV * , struct CRGB *);
+void running_rainbow(struct CRGB  *);
+void rotating_rainbow(struct CRGB  *);
 
 
 #endif
