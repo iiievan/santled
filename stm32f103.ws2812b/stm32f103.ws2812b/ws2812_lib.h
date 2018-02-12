@@ -3,11 +3,25 @@
 
 #include <stm32f10x_conf.h>
 #include <stdbool.h>
+#include <lib_8.h>
+#include <math.h>
+
 
 #define NUMOFLEDS 29
 #define BUFFERSIZE (NUMOFLEDS*24)
 
 #define NUM_OF_FRAMES 24
+
+// переменные для костра.
+
+// COOLING: How much does the air cool as it rises?
+// Less cooling = taller flames.  More cooling = shorter flames.
+// Default 50, suggested range 20-100 
+#define COOLING  29  // охлажденность
+// SPARKING: What chance (out of 255) is there that a new spark will be lit?
+// Higher chance = more roaring fire.  Lower chance = more flickery fire.
+// Default 120, suggested range 50-200.
+#define SPARKING 120	// искрообразование.
 
 extern bool ws2812_transmit;
 
@@ -93,6 +107,8 @@ void move_leds(uint32_t, uint32_t, uint32_t, struct CRGB  *);
 void fill_rainbow(const struct CHSV * , struct CRGB *);
 void running_rainbow(struct CRGB  *);
 void rotating_rainbow(struct CRGB  *);
+void e_fire(struct CRGB  * , bool );
+struct CRGB heat_color(uint8_t);
 
 
 #endif

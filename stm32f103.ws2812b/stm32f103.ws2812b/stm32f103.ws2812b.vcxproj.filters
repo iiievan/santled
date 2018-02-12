@@ -131,6 +131,9 @@
     <ClCompile Include="low_level_init.c">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="lib_8.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile" />
@@ -248,6 +251,9 @@
       <Filter>Header files</Filter>
     </ClInclude>
     <ClInclude Include="low_level_init.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib_8.h">
       <Filter>Header files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -167,9 +167,7 @@ int main(void)
 		{
 			static uint8_t i, j;
 				
-			srand(adc_rng_get());   // зерно для получения случайного числа.
-		
-			i = rand() % 24;	    // случайный  кадр из 24-х.
+			random_lim(24);   // случайный  кадр из 24-х.    
 					
 			for (j = 0; j < NUMOFLEDS; j++)
 			{		
@@ -181,11 +179,15 @@ int main(void)
 			you_have_new_message = false;
 		}
 
-		running_rainbow(leds_buf);
+		//running_rainbow(leds_buf);
 		
 		//rotating_rainbow(leds_buf);
 		
-		Delay(400000);
+		e_fire(leds_buf, false);
+		
+		convert_rgb_to_dma_buf(leds_buf);
+		
+		Delay(100000);
 	}
 }
 

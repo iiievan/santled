@@ -838,3 +838,111 @@ void rotating_rainbow(struct CRGB  * rgb)
 		}
 	}	
 }
+
+/*
+  rgb - массив светодиодов ws2812
+  b_reverse_direction - направление костра.
+*/
+void e_fire(struct CRGB  * rgb, bool b_reverse_direction)
+{
+    // Array of temperature readings at each simulation cell
+	static uint8_t heat[NUMOFLEDS];	
+	struct CRGB color = { 0x00, 0x00, 0x00 };
+	uint8_t pixelnumber;
+	
+    // Step 0. Fill heat;
+	double flame_seed = (double)random_min_max(50, 75) / 100.0;
+	double heat_seed = (double)random_min_max(60, 200);
+	for (int i = 0; i < NUMOFLEDS; i++) {
+		heat[i] = (uint8_t) (heat_seed *pow(flame_seed, i));
+	}
+  
+/*
+	// Step 1.  Cool down every cell a little
+	for (int i = 0; i < NUMOFLEDS; i++) {
+		heat[i] = qsub_8(heat[i], random_min_max(0, ((COOLING * 10) / NUMOFLEDS) + 2));
+	}
+  
+    // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+	for (int k = NUMOFLEDS - 1; k >= 2; k--) {
+		heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
+	}
+*/    
+	// Step 3.  Randomly ignite new 'sparks' of heat near the bottom
+	if (random_8() < SPARKING) 
+	{
+		uint8_t y = random_lim(7);
+				
+		heat[y] = qadd_8(heat[y], random_min_max(160, 255));
+	}
+
+	 // Step 4.  Map from heat cells to LED colors
+	for (int j = 0; j < NUMOFLEDS; j++) 
+	{
+		color = heat_color(heat[j]);
+		
+		if (b_reverse_direction) 
+		{
+			pixelnumber = (NUMOFLEDS - 1) - j;
+		}
+		else 
+		{
+			pixelnumber = j;
+		}
+		
+		rgb[pixelnumber] = color;
+	}
+}
+
+// CRGB HeatColor( uint8_t temperature)
+//
+// Approximates a 'black body radiation' spectrum for
+// a given 'heat' level.  This is useful for animations of 'fire'.
+// Heat is specified as an arbitrary scale from 0 (cool) to 255 (hot).
+// This is NOT a chromatically correct 'black body radiation'
+// spectrum, but it's surprisingly close, and it's fast and small.
+//
+// On AVR/Arduino, this typically takes around 70 bytes of program memory,
+// versus 768 bytes for a full 256-entry RGB lookup table.
+
+struct CRGB heat_color(uint8_t temperature)
+{
+	struct CRGB heatcolor;
+
+	    // Scale 'heat' down from 0-255 to 0-191,
+	    // which can then be easily divided into three
+	    // equal 'thirds' of 64 units each.
+	//uint8_t t192 = scale_8_video(temperature, 191);
+	uint8_t scale = 191;
+	uint8_t t192 = ((temperature * scale) >> 8) + ((temperature && scale) ? 1 : 0);
+
+	    // calculate a value that ramps up from
+	    // zero to 255 in each 'third' of the scale.
+	uint8_t heatramp = t192 & 0x3F; // 0..63
+	heatramp <<= 2; // scale up to 0..252
+
+	    // now figure out which third of the spectrum we're in:
+	if (t192 & 0x80) {
+	    // we're in the hottest third
+		heatcolor.r = 255; // full red
+		heatcolor.g = 255; // full green
+		heatcolor.b = heatramp; // ramp up blue
+
+	}
+	else if (t192 & 0x40) {
+	    // we're in the middle third
+		heatcolor.r = 255; // full red
+		heatcolor.g = heatramp; // ramp up green
+		heatcolor.b = 0; // no blue
+
+	}
+	else
+	{
+	    // we're in the coolest third
+		heatcolor.r = heatramp; // ramp up red
+		heatcolor.g = 0; // no green
+		heatcolor.b = 0; // no blue
+	}
+
+	return heatcolor;
+}

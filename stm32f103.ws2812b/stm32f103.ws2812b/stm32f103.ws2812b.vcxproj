@@ -88,6 +88,7 @@
     <ClCompile Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_tim.c" />
     <ClCompile Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_usart.c" />
     <ClCompile Include="C:\Users\iiievan\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_wwdg.c" />
+    <ClCompile Include="lib_8.c" />
     <ClCompile Include="low_level_init.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="adc.c" />
@@ -135,6 +136,7 @@
     <ClInclude Include="low_level_init.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="ring_buffer.h" />
+    <ClInclude Include="lib_8.h" />
     <ClInclude Include="stm32f10x_conf.h" />
     <ClInclude Include="usart.h" />
     <ClInclude Include="ws2812_lib.h" />

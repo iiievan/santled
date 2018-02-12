@@ -10,6 +10,7 @@
 #include <usart.h>
 #include <ring_buffer.h>
 #include <low_level_init.h>
+#include <lib_8.h>
 
 #define __USE_C99_MATH	// для того чтобы тип bool был определен.
 #include <stdbool.h>
