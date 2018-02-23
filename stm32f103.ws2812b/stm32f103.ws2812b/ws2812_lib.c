@@ -830,7 +830,7 @@ void rotating_rainbow(struct CRGB  * rgb)
 		
 		convert_rgb_to_dma_buf(rgb);
 		
-		Delay(40000);
+		Delay(80000);
 				
 		if (0xBF <= (++hsv_buf.hue))
 		{
@@ -851,8 +851,9 @@ void e_fire(struct CRGB  * rgb, bool b_reverse_direction)
 	uint8_t pixelnumber;
 	
     // Step 0. Fill heat;
-	double flame_seed = (double)random_min_max(50, 75) / 100.0;
-	double heat_seed = (double)random_min_max(60, 200);
+	double flame_seed = (double)random_min_max(49, 89) / 100.0;
+	//double heat_seed = (double)random_min_max(60, 200);
+	uint8_t heat_seed = 0xff;
 	for (int i = 0; i < NUMOFLEDS; i++) {
 		heat[i] = (uint8_t) (heat_seed *pow(flame_seed, i));
 	}
@@ -867,7 +868,7 @@ void e_fire(struct CRGB  * rgb, bool b_reverse_direction)
 	for (int k = NUMOFLEDS - 1; k >= 2; k--) {
 		heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
 	}
-*/    
+   
 	// Step 3.  Randomly ignite new 'sparks' of heat near the bottom
 	if (random_8() < SPARKING) 
 	{
@@ -875,7 +876,12 @@ void e_fire(struct CRGB  * rgb, bool b_reverse_direction)
 				
 		heat[y] = qadd_8(heat[y], random_min_max(160, 255));
 	}
-
+*/ 
+    #warning исключительно для отладки
+	if ((heat[NUMOFLEDS - 1] & 0xFC) != 0x00)
+	{
+		heat_seed = 0xbf;
+	}
 	 // Step 4.  Map from heat cells to LED colors
 	for (int j = 0; j < NUMOFLEDS; j++) 
 	{
@@ -922,14 +928,16 @@ struct CRGB heat_color(uint8_t temperature)
 	heatramp <<= 2; // scale up to 0..252
 
 	    // now figure out which third of the spectrum we're in:
-	if (t192 & 0x80) {
+	if (t192 & 0x80)
+	{
 	    // we're in the hottest third
 		heatcolor.r = 255; // full red
 		heatcolor.g = 255; // full green
 		heatcolor.b = heatramp; // ramp up blue
 
 	}
-	else if (t192 & 0x40) {
+	else if (t192 & 0x40)
+	{
 	    // we're in the middle third
 		heatcolor.r = 255; // full red
 		heatcolor.g = heatramp; // ramp up green
@@ -946,3 +954,91 @@ struct CRGB heat_color(uint8_t temperature)
 
 	return heatcolor;
 }
+
+/*
+  rgb - массив светодиодов ws2812
+  b_reverse_direction - направление костра.
+  color_start   - начальный цвет градиента (тот что внизу костра)
+  color_end - конечный цвет градиента (тот что вкноце)
+*/
+void gradient(struct CRGB  * rgb, bool b_reverse_direction, const struct CRGB  * color_start, const struct CRGB  * color_end)
+{	
+	struct CRGB color = { 0x00, 0x00, 0x00 } ;	
+	 // Step 4.  Map from heat cells to LED colors
+	uint8_t pixelnumber;
+	for(uint8_t x = 0 ; x < NUMOFLEDS ; x++) 
+	{		
+		float p = x / (float)(NUMOFLEDS - 1);	// приведение к единице
+		color.r = (uint8_t)((1.0 - p)*color_start->r + p * color_end->r + 0.5);
+		color.g = (uint8_t)((1.0 - p)*color_start->g + p * color_end->g + 0.5);
+		color.b = (uint8_t)((1.0 - p)*color_start->b + p * color_end->b + 0.5);		    
+
+		if(b_reverse_direction) 
+		{
+			pixelnumber = (NUMOFLEDS - 1) - x;
+		}
+		else 
+		{
+			pixelnumber = x;
+		}
+		        		
+		rgb[pixelnumber].rgb = color.rgb ;
+	}
+}
+
+/*
+  rgb - массив светодиодов ws2812
+  b_reverse_direction - направление костра.
+  color_start   - начальный цвет градиента (тот что внизу костра)
+  color_end - конечный цвет градиента (тот что вкноце)
+*/
+void gradient_fire(struct CRGB  * rgb, bool b_reverse_direction, const struct CRGB  * color_start, const struct CRGB  * color_end)
+{
+    // Array of temperature readings at each simulation cell
+	static double gradient_map[NUMOFLEDS];	
+	struct CRGB color = { 0x00, 0x00, 0x00 } ;
+	
+    // Step 0. Generate gradient function;
+	double flame_seed = (double)random_min_max(83, 90) / 100.0 ;
+	for(int i = 0 ; i < NUMOFLEDS ; i++)
+    {
+    	gradient_map[i] = (1.0 *pow(flame_seed, i)) ;
+    }
+  
+
+    #warning исключительно для отладки
+	uint8_t heat_seed = 0xbf;
+	if(gradient_map[NUMOFLEDS - 1] != 0)
+    {
+	    heat_seed++;
+    }
+	
+	
+     // Step 4.  Map from heat cells to LED colors
+	uint8_t pixelnumber;
+    for(uint8_t x = 0 ; x < NUMOFLEDS ; x++) 
+    {
+	    //float p = ((float)gradient_map[x] / (float)(255));	// приведение к единице
+	    //float p = x / (float)(NUMOFLEDS - 1);	// приведение к единице
+	    //color.r = (uint8_t)((1.0 - p)*color_start->r + p * color_end->r + 0.5);
+	    //color.g = (uint8_t)((1.0 - p)*color_start->g + p * color_end->g + 0.5);
+	    //color.b = (uint8_t)((1.0 - p)*color_start->b + p * color_end->b + 0.5);
+	    
+	    float p = gradient_map[x];	// приведение к единице
+	    color.r = (uint8_t)(p * color_start->r + (1.0 - p) * color_end->r);
+	    color.g = (uint8_t)(p * color_start->g + (1.0 - p) * color_end->g);
+	    color.b = (uint8_t)(p * color_start->b + (1.0 - p) * color_end->b);
+        		
+		if(b_reverse_direction) 
+		{
+			pixelnumber = (NUMOFLEDS - 1) - x;
+		}
+		else 
+		{
+			pixelnumber = x;
+		}
+        		
+		rgb[pixelnumber].rgb = color.rgb ;
+    }
+}
+

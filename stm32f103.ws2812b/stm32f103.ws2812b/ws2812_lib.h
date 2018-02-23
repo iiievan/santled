@@ -109,6 +109,7 @@ void running_rainbow(struct CRGB  *);
 void rotating_rainbow(struct CRGB  *);
 void e_fire(struct CRGB  * , bool );
 struct CRGB heat_color(uint8_t);
-
+void gradient(struct CRGB  *, bool, const struct CRGB  *, const struct CRGB  *);
+void gradient_fire(struct CRGB  *, bool, const struct CRGB  *, const struct CRGB  *);
 
 #endif

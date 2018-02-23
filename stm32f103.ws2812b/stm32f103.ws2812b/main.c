@@ -95,7 +95,7 @@ void USART1_IRQHandler(void)
 	// где 0ј BC - это заголовок дл€ смены цвета эффекта.
 	// 0x40 - код операции, 0RGB 0000 - там где единица, там операци€  сложить, где ноль вычесть.
 
-	if ((rx_temp == 0x0A && 
+	if (((rx_temp & 0x0F) == 0x0A && 
 		 usart_buffer.head == 0) ||		// первый байт заголовка сообщени€ о корректировке
 		(usart_buffer.head == 1 &&	    // второй байт заголовка сообщени€ о корректировке
 		 rx_temp == 0xBC) ||
@@ -140,12 +140,16 @@ void USART1_IRQHandler(void)
 
 int main(void) 
 {	
+	
+	static struct CRGB start_color = { 0xFB, 0xFB, 0xFB };
+	static struct CRGB end_color = { 0x00, 0xFF, 0x92 };
+	
 	low_level_init();
 	
 	rb_init(&usart_buffer);	// инициализируем буффер только перед инициализацией usart,
 						    // там разрешаетс€ прерывание в конце.
 	
-	you_have_new_message = true;
+	you_have_new_message = true;	
 	
 	while (1) 
 	{
@@ -161,7 +165,7 @@ int main(void)
 			usart_buffer.head = usart_buffer.tail = 0;
 			usart_rxtx = false;
 		}
-		
+
 
 		if (true == you_have_new_message)
 		{
@@ -172,7 +176,10 @@ int main(void)
 			for (j = 0; j < NUMOFLEDS; j++)
 			{		
 				leds_buf[j].rgb = rgb_coeff.rgb;
-			}
+			}		
+			
+			//start_color.rgb = end_color.rgb;
+			//end_color.rgb = rgb_coeff.rgb;
 			
 			convert_rgb_to_dma_buf(leds_buf);		
 
@@ -183,10 +190,29 @@ int main(void)
 		
 		//rotating_rainbow(leds_buf);
 		
-		e_fire(leds_buf, false);
+		//e_fire(leds_buf, true);
 		
+		// пока покадровый костер рулит, а это не очень то удачна€ попытка.
+		//gradient_fire(leds_buf, false, &start_color, &end_color);
+		
+		/*
+		uint8_t i;	
+		struct CHSV hsv_buf = { 0xff, 0xff, 0 };
+	
+        for (i = 0; i < NUMOFLEDS; i++)
+		{		
+			hsv2rgb(&hsv_buf, &leds_buf[i]);	
+		}
+		
+		gradient(leds_buf, false, &start_color, &end_color);
+				
 		convert_rgb_to_dma_buf(leds_buf);
 		
+		if (0xBF <= (++hsv_buf.hue))
+		{
+			hsv_buf.hue = 0;
+		}
+		*/
 		Delay(100000);
 	}
 }
