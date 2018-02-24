@@ -186,7 +186,7 @@ int main(void)
 			you_have_new_message = false;
 		}
 
-		//running_rainbow(leds_buf);
+		running_rainbow(leds_buf);
 		
 		//rotating_rainbow(leds_buf);
 		
