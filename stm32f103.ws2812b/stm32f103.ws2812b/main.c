@@ -4,7 +4,6 @@
 volatile uint8_t TIM2_overflows = 0;
 
 static uint8_t usart_rx_byte_conter = 0;	// счетчик байт принятого сообщения.
-static bool you_have_new_message = false;
 static bool usart_rxtx = false;				// идет прием/передача по usart
 
 static uint32_t usart_buffer_reset_tmr = 0;	// Таймер сброса Буффера, если получили не полные восемь байт

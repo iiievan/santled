@@ -24,6 +24,7 @@
 #define SPARKING 120	// искрообразование.
 
 extern bool ws2812_transmit;
+extern bool you_have_new_message;
 
 /* буффер кадров WS2812 
  * размер буффера = (#LEDs / 16) * 24 */

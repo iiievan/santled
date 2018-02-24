@@ -1,6 +1,7 @@
 #include <ws2812_lib.h>
 
 bool ws2812_transmit = false;
+bool you_have_new_message = false;
 
 static const uint8_t dim_curve[256] = 
 {
@@ -226,7 +227,8 @@ static uint32_t frames[NUM_OF_FRAMES][32] =
 /* simple delay counter to waste time, don't rely on for accurate timing */
 void Delay(__IO uint32_t nCount)
 {
-	while (nCount--) {
+	while (nCount-- && 
+		  !you_have_new_message) {
 	}
 }
 
@@ -803,7 +805,7 @@ void running_rainbow(struct CRGB  * buf)
 {
 	struct CHSV hsv_buf = { 0xff, 0xff, 0xff };
 	
-	while (1)
+	while (!you_have_new_message)
 	{
 		fill_rainbow( &hsv_buf, buf);
 		move_leds(NUMOFLEDS, 1, 200000, buf);
@@ -821,7 +823,7 @@ void rotating_rainbow(struct CRGB  * rgb)
 	uint8_t i;	
 	struct CHSV hsv_buf = { 0xff, 0xff, 0 };
 	
-	while (1)
+	while (!you_have_new_message)
 	{		
 		for (i = 0; i < NUMOFLEDS; i++)
 		{		
