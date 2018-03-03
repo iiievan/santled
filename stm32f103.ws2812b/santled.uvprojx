@@ -333,7 +333,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define></Define>
+              <Define>STM32F10X_CL, USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
               <IncludePath>.\src</IncludePath>
             </VariousControls>
@@ -403,6 +403,16 @@
               <FileName>ws2812_lib.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\ws2812_lib.c</FilePath>
+            </File>
+            <File>
+              <FileName>lib_8.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\lib_8.c</FilePath>
+            </File>
+            <File>
+              <FileName>low_level_init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\low_level_init.c</FilePath>
             </File>
           </Files>
         </Group>
